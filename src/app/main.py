@@ -23,8 +23,8 @@ def create_app() -> FastAPI:
         title=settings.app_name,
         version=settings.app_version,
         description=(
-            "Production-ready FastAPI service exposing health checks and "
-            "OpenAPI documentation."
+            "Production-ready FastAPI service exposing health checks, user "
+            "management endpoints, and OpenAPI documentation."
         ),
         openapi_url="/api/openapi.json",
         docs_url="/api/docs",
@@ -42,7 +42,11 @@ def create_app() -> FastAPI:
             {
                 "name": "Health",
                 "description": "Operational health endpoints for liveness and readiness probes.",
-            }
+            },
+            {
+                "name": "Users",
+                "description": "CRUD operations for managing application users.",
+            },
         ],
     )
     app.include_router(api_router, prefix=_get_api_root_prefix(settings))
@@ -109,6 +113,10 @@ def _build_openapi_schema(app: FastAPI, settings: Settings) -> dict[str, Any]:
         {
             "name": "Health",
             "description": "Operational health endpoints for liveness and readiness probes.",
-        }
+        },
+        {
+            "name": "Users",
+            "description": "CRUD operations for managing application users.",
+        },
     ]
     return schema

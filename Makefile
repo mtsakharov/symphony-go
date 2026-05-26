@@ -1,6 +1,6 @@
 UV ?= uv
 
-.PHONY: sync run test lint fmt typecheck
+.PHONY: sync run test lint fmt typecheck migrate
 
 sync:
 	$(UV) sync
@@ -19,3 +19,6 @@ fmt:
 
 typecheck:
 	$(UV) run mypy src
+
+migrate:
+	$(UV) run alembic upgrade head
