@@ -31,10 +31,13 @@ async def test_readiness_returns_503_when_not_ready(app: FastAPI) -> None:
     """Ensure the readiness probe returns 503 when the app is not ready."""
 
     transport = ASGITransport(app=app)
-    async with app.router.lifespan_context(app), AsyncClient(
-        transport=transport,
-        base_url="http://testserver",
-    ) as client:
+    async with (
+        app.router.lifespan_context(app),
+        AsyncClient(
+            transport=transport,
+            base_url="http://testserver",
+        ) as client,
+    ):
         app.state.ready = False
         response = await client.get("/api/v1/health/ready")
 

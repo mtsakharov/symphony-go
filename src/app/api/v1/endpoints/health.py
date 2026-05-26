@@ -58,8 +58,7 @@ async def get_liveness() -> LivenessResponse:
     responses={503: {"model": ReadinessResponse, "description": "Service not ready"}},
     summary="Check service readiness",
     description=(
-        "Returns whether the service is ready to accept traffic and "
-        "component health details."
+        "Returns whether the service is ready to accept traffic and component health details."
     ),
     tags=["Health"],
     operation_id="getReadinessProbe",

@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 8000
     api_v1_prefix: str = "/api/v1"
+    database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/fastapi_service"
 
     model_config = SettingsConfigDict(
         env_file=".env",
