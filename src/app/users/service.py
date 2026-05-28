@@ -22,7 +22,7 @@ class UserService:
     def create_user(self, session: Session, payload: UserCreate) -> UserResponse:
         """Create a new user if the email is unique."""
 
-        email = str(payload.email)
+        email = self._normalize_email(str(payload.email))
         if self.repository.get_by_email(session, email) is not None:
             raise UserEmailConflictError("User with this email already exists")
 
@@ -71,7 +71,7 @@ class UserService:
             raise UserNotFoundError("User not found")
 
         if payload.email is not None:
-            email = str(payload.email)
+            email = self._normalize_email(str(payload.email))
             existing_user = self.repository.get_by_email(session, email)
             if existing_user is not None and existing_user.id != user.id:
                 raise UserEmailConflictError("User with this email already exists")
@@ -100,3 +100,9 @@ class UserService:
 
         self.repository.delete(session, user=user)
         session.commit()
+
+    @staticmethod
+    def _normalize_email(email: str) -> str:
+        """Return a canonical email representation for persistence."""
+
+        return email.strip().lower()
