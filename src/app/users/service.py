@@ -42,12 +42,34 @@ class UserService:
         session.refresh(user)
         return UserResponse.model_validate(user)
 
-    def list_users(self, session: Session, *, page: int, limit: int) -> UserListResponse:
+    def list_users(
+        self,
+        session: Session,
+        *,
+        page: int,
+        limit: int,
+        search: str | None = None,
+        is_active: bool | None = None,
+    ) -> UserListResponse:
         """Return a paginated list of users."""
 
         offset = (page - 1) * limit
-        users = self.repository.list_users(session, offset=offset, limit=limit)
-        total = self.repository.count_users(session)
+        normalized_search = search.strip() if search is not None else None
+        if normalized_search == "":
+            normalized_search = None
+
+        users = self.repository.list_users(
+            session,
+            offset=offset,
+            limit=limit,
+            search=normalized_search,
+            is_active=is_active,
+        )
+        total = self.repository.count_users(
+            session,
+            search=normalized_search,
+            is_active=is_active,
+        )
         return UserListResponse(
             items=[UserResponse.model_validate(user) for user in users],
             page=page,

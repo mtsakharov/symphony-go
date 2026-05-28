@@ -73,6 +73,42 @@ async def test_list_users_returns_paginated_payload(client: AsyncClient) -> None
 
 
 @pytest.mark.asyncio
+async def test_list_users_filters_by_active_status(client: AsyncClient) -> None:
+    """Listing users should support filtering by active status."""
+
+    active_user = await create_user(client, email="active@example.com", first_name="Active")
+    inactive_user = await create_user(client, email="inactive@example.com", first_name="Inactive")
+
+    deactivate_response = await client.patch(
+        f"/api/v1/users/{inactive_user['id']}",
+        json={"is_active": False},
+    )
+
+    assert deactivate_response.status_code == 200
+
+    response = await client.get("/api/v1/users", params={"is_active": "false"})
+
+    assert response.status_code == 200
+    assert response.json()["total"] == 1
+    assert [item["email"] for item in response.json()["items"]] == ["inactive@example.com"]
+    assert active_user["email"] != inactive_user["email"]
+
+
+@pytest.mark.asyncio
+async def test_list_users_filters_by_search_term(client: AsyncClient) -> None:
+    """Listing users should support case-insensitive search."""
+
+    await create_user(client, email="john@example.com", first_name="John", last_name="Doe")
+    await create_user(client, email="jane@example.com", first_name="Jane", last_name="Smith")
+
+    response = await client.get("/api/v1/users", params={"search": "SMI"})
+
+    assert response.status_code == 200
+    assert response.json()["total"] == 1
+    assert [item["email"] for item in response.json()["items"]] == ["jane@example.com"]
+
+
+@pytest.mark.asyncio
 async def test_get_user_by_id_returns_user(client: AsyncClient) -> None:
     """Fetching a user by id should return the record."""
 

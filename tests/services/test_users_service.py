@@ -78,3 +78,36 @@ def test_update_user_updates_existing_user() -> None:
     assert response.last_name == "Smith"
     assert response.is_active is False
     session.commit.assert_called_once()
+
+
+def test_list_users_passes_normalized_filters_to_repository() -> None:
+    """Service should normalize filters before querying the repository."""
+
+    repository = Mock(spec=UserRepository)
+    repository.list_users.return_value = [build_user(email="match@example.com")]
+    repository.count_users.return_value = 1
+    service = UserService(repository=repository)
+    session = Mock()
+
+    response = service.list_users(
+        session,
+        page=2,
+        limit=5,
+        search="  match  ",
+        is_active=True,
+    )
+
+    repository.list_users.assert_called_once_with(
+        session,
+        offset=5,
+        limit=5,
+        search="match",
+        is_active=True,
+    )
+    repository.count_users.assert_called_once_with(
+        session,
+        search="match",
+        is_active=True,
+    )
+    assert response.total == 1
+    assert response.items[0].email == "match@example.com"
