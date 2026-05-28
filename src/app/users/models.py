@@ -3,12 +3,17 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from sqlalchemy import Boolean, DateTime, String, Uuid, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.access.models import user_roles_table
 from app.database.base import Base
+
+if TYPE_CHECKING:
+    from app.access.models import Role
 
 
 def utc_now() -> datetime:
@@ -38,4 +43,9 @@ class User(Base):
         default=utc_now,
         onupdate=utc_now,
         server_default=func.now(),
+    )
+    roles: Mapped[list[Role]] = relationship(
+        secondary=user_roles_table,
+        back_populates="users",
+        lazy="selectin",
     )

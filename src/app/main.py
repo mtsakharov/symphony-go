@@ -44,8 +44,16 @@ def create_app() -> FastAPI:
                 "description": "Operational health endpoints for liveness and readiness probes.",
             },
             {
+                "name": "Permissions",
+                "description": "CRUD operations for managing permission definitions.",
+            },
+            {
+                "name": "Roles",
+                "description": "CRUD operations for managing roles and linked permissions.",
+            },
+            {
                 "name": "Users",
-                "description": "CRUD operations for managing application users.",
+                "description": "CRUD operations for managing application users and assigned roles.",
             },
         ],
     )
@@ -115,8 +123,16 @@ def _build_openapi_schema(app: FastAPI, settings: Settings) -> dict[str, Any]:
             "description": "Operational health endpoints for liveness and readiness probes.",
         },
         {
+            "name": "Permissions",
+            "description": "CRUD operations for managing permission definitions.",
+        },
+        {
+            "name": "Roles",
+            "description": "CRUD operations for managing roles and linked permissions.",
+        },
+        {
             "name": "Users",
-            "description": "CRUD operations for managing application users.",
+            "description": "CRUD operations for managing application users and assigned roles.",
         },
     ]
     return schema

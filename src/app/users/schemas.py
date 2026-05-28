@@ -8,6 +8,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, StringConstraints
 
+from app.access.schemas import PermissionResponse, RoleSummaryResponse
+
 NameField = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
 OptionalNameField = (
     Annotated[
@@ -24,6 +26,7 @@ class UserCreate(BaseModel):
     email: EmailStr
     first_name: NameField
     last_name: NameField
+    role_ids: list[UUID] = Field(default_factory=list)
 
 
 class UserUpdate(BaseModel):
@@ -33,6 +36,7 @@ class UserUpdate(BaseModel):
     first_name: OptionalNameField = None
     last_name: OptionalNameField = None
     is_active: bool | None = None
+    role_ids: list[UUID] | None = None
 
 
 class UserResponse(BaseModel):
@@ -45,6 +49,8 @@ class UserResponse(BaseModel):
     first_name: str
     last_name: str
     is_active: bool
+    roles: list[RoleSummaryResponse]
+    permissions: list[PermissionResponse]
     created_at: datetime
     updated_at: datetime
 

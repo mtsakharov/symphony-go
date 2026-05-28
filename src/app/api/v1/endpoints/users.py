@@ -8,6 +8,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
+from app.access.exceptions import RoleNotFoundError
 from app.database.session import get_db_session
 from app.users.exceptions import UserEmailConflictError, UserNotFoundError
 from app.users.schemas import (
@@ -47,6 +48,8 @@ def create_user(
         return service.create_user(session, payload)
     except UserEmailConflictError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    except RoleNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
 
 @router.get(
@@ -108,6 +111,8 @@ def update_user(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     except UserEmailConflictError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+    except RoleNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
 
 @router.delete(
