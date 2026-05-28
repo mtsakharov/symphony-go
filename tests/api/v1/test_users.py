@@ -128,6 +128,37 @@ async def test_update_user_rejects_duplicate_email(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_update_user_status_returns_updated_user(client: AsyncClient) -> None:
+    """Updating user status should persist only the active flag change."""
+
+    created_user = await create_user(client)
+
+    response = await client.patch(
+        f"/api/v1/users/{created_user['id']}/status",
+        json={"is_active": False},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["id"] == created_user["id"]
+    assert response.json()["first_name"] == "John"
+    assert response.json()["last_name"] == "Doe"
+    assert response.json()["is_active"] is False
+
+
+@pytest.mark.asyncio
+async def test_update_user_status_returns_not_found(client: AsyncClient) -> None:
+    """Updating a missing user's status should return 404."""
+
+    response = await client.patch(
+        f"/api/v1/users/{uuid4()}/status",
+        json={"is_active": False},
+    )
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "User not found"}
+
+
+@pytest.mark.asyncio
 async def test_delete_user_removes_user(client: AsyncClient) -> None:
     """Deleting a user should remove it from later reads."""
 

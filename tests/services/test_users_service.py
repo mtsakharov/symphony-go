@@ -11,7 +11,7 @@ import pytest
 from app.users.exceptions import UserEmailConflictError, UserNotFoundError
 from app.users.models import User
 from app.users.repository import UserRepository
-from app.users.schemas import UserCreate, UserUpdate
+from app.users.schemas import UserCreate, UserStatusUpdate, UserUpdate
 from app.users.service import UserService
 
 
@@ -77,4 +77,25 @@ def test_update_user_updates_existing_user() -> None:
     assert response.first_name == "Jane"
     assert response.last_name == "Smith"
     assert response.is_active is False
+    session.commit.assert_called_once()
+
+
+def test_update_user_status_updates_existing_user() -> None:
+    """Service should update only the active status."""
+
+    repository = Mock(spec=UserRepository)
+    user = build_user()
+    repository.get_by_id.return_value = user
+    service = UserService(repository=repository)
+    session = Mock()
+
+    response = service.update_user_status(
+        session,
+        user.id,
+        UserStatusUpdate(is_active=False),
+    )
+
+    assert response.is_active is False
+    assert response.first_name == "John"
+    assert response.last_name == "Doe"
     session.commit.assert_called_once()

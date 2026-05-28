@@ -35,6 +35,12 @@ class UserUpdate(BaseModel):
     is_active: bool | None = None
 
 
+class UserStatusUpdate(BaseModel):
+    """Payload for updating a user's active status."""
+
+    is_active: bool
+
+
 class UserResponse(BaseModel):
     """Serialized user returned by the API."""
 
