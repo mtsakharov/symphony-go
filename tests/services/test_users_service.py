@@ -26,6 +26,7 @@ def build_user(*, email: str = "user@example.com") -> User:
         last_name="Doe",
         password_hash="",
         is_active=True,
+        roles=[],
         created_at=now,
         updated_at=now,
     )

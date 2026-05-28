@@ -5,8 +5,9 @@ from __future__ import annotations
 from uuid import UUID
 
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
+from app.access.models import Role
 from app.users.models import User
 
 
@@ -16,12 +17,21 @@ class UserRepository:
     def get_by_id(self, session: Session, user_id: UUID) -> User | None:
         """Return a user by id if present."""
 
-        return session.get(User, user_id)
+        statement = (
+            select(User)
+            .options(selectinload(User.roles).selectinload(Role.permissions))
+            .where(User.id == user_id)
+        )
+        return session.execute(statement).scalar_one_or_none()
 
     def get_by_email(self, session: Session, email: str) -> User | None:
         """Return a user by email if present."""
 
-        statement = select(User).where(User.email == email)
+        statement = (
+            select(User)
+            .options(selectinload(User.roles).selectinload(Role.permissions))
+            .where(User.email == email)
+        )
         return session.execute(statement).scalar_one_or_none()
 
     def list_users(self, session: Session, *, offset: int, limit: int) -> list[User]:
@@ -29,6 +39,7 @@ class UserRepository:
 
         statement = (
             select(User)
+            .options(selectinload(User.roles).selectinload(Role.permissions))
             .order_by(User.created_at.desc(), User.id.desc())
             .offset(offset)
             .limit(limit)

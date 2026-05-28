@@ -15,12 +15,18 @@ async def create_user(
     email: str = "user@example.com",
     first_name: str = "John",
     last_name: str = "Doe",
+    role_ids: list[str] | None = None,
 ) -> dict[str, object]:
     """Create a user through the API and return the response payload."""
 
     response = await client.post(
         "/api/v1/users",
-        json={"email": email, "first_name": first_name, "last_name": last_name},
+        json={
+            "email": email,
+            "first_name": first_name,
+            "last_name": last_name,
+            "role_ids": role_ids or [],
+        },
     )
     assert response.status_code == 201
     return cast(dict[str, object], response.json())
@@ -36,6 +42,8 @@ async def test_create_user_returns_created_user(client: AsyncClient) -> None:
     assert payload["first_name"] == "John"
     assert payload["last_name"] == "Doe"
     assert payload["is_active"] is True
+    assert payload["roles"] == []
+    assert payload["permissions"] == []
     assert "id" in payload
     assert "created_at" in payload
     assert "updated_at" in payload
@@ -109,6 +117,92 @@ async def test_update_user_returns_updated_user(client: AsyncClient) -> None:
     assert response.json()["first_name"] == "Jane"
     assert response.json()["last_name"] == "Doe"
     assert response.json()["is_active"] is False
+
+
+@pytest.mark.asyncio
+async def test_create_user_includes_assigned_roles_and_permissions(client: AsyncClient) -> None:
+    """Creating a user with roles should expose assigned roles and effective permissions."""
+
+    permission_response = await client.post(
+        "/api/v1/permissions",
+        json={"name": "users.read", "description": "Read users"},
+    )
+    permission = cast(dict[str, object], permission_response.json())
+    role_response = await client.post(
+        "/api/v1/roles",
+        json={
+            "name": "admin",
+            "description": "Administrators",
+            "permission_ids": [permission["id"]],
+        },
+    )
+    role = cast(dict[str, object], role_response.json())
+
+    payload = await create_user(client, role_ids=[cast(str, role["id"])])
+    roles = cast(list[dict[str, object]], payload["roles"])
+    permissions = cast(list[dict[str, object]], payload["permissions"])
+
+    assert [item["name"] for item in roles] == ["admin"]
+    assert [item["name"] for item in permissions] == ["users.read"]
+
+
+@pytest.mark.asyncio
+async def test_update_user_replaces_assigned_roles(client: AsyncClient) -> None:
+    """Updating a user should replace the assigned roles when role_ids are supplied."""
+
+    permission_one = await client.post(
+        "/api/v1/permissions",
+        json={"name": "users.read", "description": "Read users"},
+    )
+    permission_two = await client.post(
+        "/api/v1/permissions",
+        json={"name": "users.write", "description": "Write users"},
+    )
+    role_one = await client.post(
+        "/api/v1/roles",
+        json={
+            "name": "viewer",
+            "description": "Viewers",
+            "permission_ids": [permission_one.json()["id"]],
+        },
+    )
+    role_two = await client.post(
+        "/api/v1/roles",
+        json={
+            "name": "editor",
+            "description": "Editors",
+            "permission_ids": [permission_two.json()["id"]],
+        },
+    )
+    created_user = await create_user(client, role_ids=[role_one.json()["id"]])
+
+    response = await client.patch(
+        f"/api/v1/users/{created_user['id']}",
+        json={"role_ids": [role_two.json()["id"]]},
+    )
+
+    assert response.status_code == 200
+    assert [item["name"] for item in response.json()["roles"]] == ["editor"]
+    assert [item["name"] for item in response.json()["permissions"]] == ["users.write"]
+
+
+@pytest.mark.asyncio
+async def test_create_user_rejects_unknown_role_ids(client: AsyncClient) -> None:
+    """Creating a user with missing roles should fail with 404."""
+
+    missing_id = str(uuid4())
+    response = await client.post(
+        "/api/v1/users",
+        json={
+            "email": "user@example.com",
+            "first_name": "John",
+            "last_name": "Doe",
+            "role_ids": [missing_id],
+        },
+    )
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": f"Roles not found: {missing_id}"}
 
 
 @pytest.mark.asyncio

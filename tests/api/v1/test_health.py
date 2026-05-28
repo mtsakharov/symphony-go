@@ -66,9 +66,14 @@ async def test_openapi_schema_contains_health_endpoints(client: AsyncClient) -> 
     schema = response.json()
     assert "/api/v1/health/live" in schema["paths"]
     assert "/api/v1/health/ready" in schema["paths"]
+    assert "/api/v1/permissions" in schema["paths"]
+    assert "/api/v1/roles" in schema["paths"]
+    assert "/api/v1/users" in schema["paths"]
     assert schema["paths"]["/api/v1/health/live"]["get"]["operationId"] == "getLivenessProbe"
     assert schema["paths"]["/api/v1/health/ready"]["get"]["operationId"] == "getReadinessProbe"
     assert any(tag["name"] == "Health" for tag in schema["tags"])
+    assert any(tag["name"] == "Permissions" for tag in schema["tags"])
+    assert any(tag["name"] == "Roles" for tag in schema["tags"])
 
 
 async def test_docs_endpoint_accessible(client: AsyncClient) -> None:
