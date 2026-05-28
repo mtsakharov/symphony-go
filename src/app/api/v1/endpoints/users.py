@@ -61,10 +61,18 @@ def list_users(
     service: Annotated[UserService, Depends(get_user_service)],
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=20, ge=1, le=100),
+    search: str | None = Query(default=None, min_length=1, max_length=255),
+    is_active: bool | None = None,
 ) -> UserListResponse:
     """List users."""
 
-    return service.list_users(session, page=page, limit=limit)
+    return service.list_users(
+        session,
+        page=page,
+        limit=limit,
+        search=search,
+        is_active=is_active,
+    )
 
 
 @router.get(
