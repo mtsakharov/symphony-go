@@ -57,6 +57,24 @@ async def test_create_user_rejects_duplicate_email(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_create_user_normalizes_email_and_rejects_case_insensitive_duplicates(
+    client: AsyncClient,
+) -> None:
+    """Creating users should persist a normalized email and prevent case-only duplicates."""
+
+    created_user = await create_user(client, email="User@Example.COM")
+
+    duplicate_response = await client.post(
+        "/api/v1/users",
+        json={"email": "user@example.com", "first_name": "Jane", "last_name": "Doe"},
+    )
+
+    assert created_user["email"] == "user@example.com"
+    assert duplicate_response.status_code == 409
+    assert duplicate_response.json() == {"detail": "User with this email already exists"}
+
+
+@pytest.mark.asyncio
 async def test_list_users_returns_paginated_payload(client: AsyncClient) -> None:
     """Listing users should include pagination metadata."""
 
@@ -125,6 +143,23 @@ async def test_update_user_rejects_duplicate_email(client: AsyncClient) -> None:
 
     assert response.status_code == 409
     assert response.json() == {"detail": "User with this email already exists"}
+
+
+@pytest.mark.asyncio
+async def test_update_user_ignores_null_fields_and_normalizes_email(client: AsyncClient) -> None:
+    """Updating a user should preserve required fields when nulls are sent."""
+
+    created_user = await create_user(client, email="user@example.com")
+
+    response = await client.patch(
+        f"/api/v1/users/{created_user['id']}",
+        json={"email": "Updated@Example.COM", "first_name": None, "last_name": None},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["email"] == "updated@example.com"
+    assert response.json()["first_name"] == "John"
+    assert response.json()["last_name"] == "Doe"
 
 
 @pytest.mark.asyncio
