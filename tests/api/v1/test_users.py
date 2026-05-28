@@ -42,10 +42,19 @@ async def test_create_user_returns_created_user(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_create_user_normalizes_email(client: AsyncClient) -> None:
+    """Creating a user should persist a normalized email address."""
+
+    payload = await create_user(client, email="User.Name@Example.COM")
+
+    assert payload["email"] == "user.name@example.com"
+
+
+@pytest.mark.asyncio
 async def test_create_user_rejects_duplicate_email(client: AsyncClient) -> None:
     """Creating a user with an existing email should fail with 409."""
 
-    await create_user(client)
+    await create_user(client, email="User@Example.com")
 
     response = await client.post(
         "/api/v1/users",
@@ -112,11 +121,26 @@ async def test_update_user_returns_updated_user(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
+async def test_update_user_normalizes_email(client: AsyncClient) -> None:
+    """Updating a user email should store a normalized value."""
+
+    created_user = await create_user(client)
+
+    response = await client.patch(
+        f"/api/v1/users/{created_user['id']}",
+        json={"email": "Jane.Doe@Example.COM"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["email"] == "jane.doe@example.com"
+
+
+@pytest.mark.asyncio
 async def test_update_user_rejects_duplicate_email(client: AsyncClient) -> None:
     """Updating a user to an existing email should fail with 409."""
 
     first_user = await create_user(client, email="first@example.com")
-    await create_user(client, email="second@example.com")
+    await create_user(client, email="Second@Example.com")
 
     response = await client.patch(
         f"/api/v1/users/{first_user['id']}",

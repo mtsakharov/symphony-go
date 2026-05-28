@@ -114,6 +114,7 @@ Base path: `/api/v1/users`
 - `DELETE /api/v1/users/{user_id}`
 
 The API enforces unique emails, validates UUID path parameters through FastAPI/Pydantic, and returns `404` for missing users plus `409` for duplicate emails.
+User emails are normalized to lowercase before uniqueness checks and persistence.
 
 ## Health Check Endpoints
 
