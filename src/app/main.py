@@ -9,6 +9,7 @@ from typing import Any
 import uvicorn
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
+from fastapi.staticfiles import StaticFiles
 
 from app.api.router import api_router
 from app.core.config import Settings, get_settings
@@ -24,7 +25,7 @@ def create_app() -> FastAPI:
         version=settings.app_version,
         description=(
             "Production-ready FastAPI service exposing health checks, user "
-            "management endpoints, and OpenAPI documentation."
+            "management, media upload endpoints, and OpenAPI documentation."
         ),
         openapi_url="/api/openapi.json",
         docs_url="/api/docs",
@@ -38,18 +39,14 @@ def create_app() -> FastAPI:
             "name": "MIT",
             "identifier": "MIT",
         },
-        openapi_tags=[
-            {
-                "name": "Health",
-                "description": "Operational health endpoints for liveness and readiness probes.",
-            },
-            {
-                "name": "Users",
-                "description": "CRUD operations for managing application users.",
-            },
-        ],
+        openapi_tags=_get_openapi_tags(),
     )
     app.include_router(api_router, prefix=_get_api_root_prefix(settings))
+    app.mount(
+        settings.media_public_url_prefix,
+        StaticFiles(directory=settings.media_storage_dir, check_dir=False),
+        name="media-files",
+    )
     app.openapi_schema = _build_openapi_schema(app, settings)
     return app
 
@@ -109,14 +106,24 @@ def _build_openapi_schema(app: FastAPI, settings: Settings) -> dict[str, Any]:
         "name": "MIT",
         "identifier": "MIT",
     }
-    schema["tags"] = [
+    schema["tags"] = _get_openapi_tags()
+    return schema
+
+
+def _get_openapi_tags() -> list[dict[str, str]]:
+    """Return OpenAPI tag metadata."""
+
+    return [
         {
             "name": "Health",
             "description": "Operational health endpoints for liveness and readiness probes.",
+        },
+        {
+            "name": "Media",
+            "description": "Upload, inspect, list, and delete managed media assets.",
         },
         {
             "name": "Users",
             "description": "CRUD operations for managing application users.",
         },
     ]
-    return schema

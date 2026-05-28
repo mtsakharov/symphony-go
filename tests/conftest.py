@@ -9,6 +9,7 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
+from app.core.config import get_settings
 from app.database import models as database_models  # noqa: F401
 from app.database.base import Base
 from app.database.session import get_db_session
@@ -34,9 +35,16 @@ def db_session_factory(tmp_path: Path) -> Iterator[sessionmaker[Session]]:
 
 
 @pytest.fixture
-def app(db_session_factory: sessionmaker[Session]) -> FastAPI:
+def app(
+    db_session_factory: sessionmaker[Session],
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> Iterator[FastAPI]:
     """Return a configured FastAPI application for tests."""
 
+    monkeypatch.setenv("MEDIA_STORAGE_DIR", str(tmp_path / "uploads"))
+    monkeypatch.setenv("MEDIA_MAX_SIZE_BYTES", "1024")
+    get_settings.cache_clear()
     application = create_app()
 
     def override_get_db_session() -> Iterator[Session]:
@@ -44,7 +52,8 @@ def app(db_session_factory: sessionmaker[Session]) -> FastAPI:
             yield session
 
     application.dependency_overrides[get_db_session] = override_get_db_session
-    return application
+    yield application
+    get_settings.cache_clear()
 
 
 @pytest.fixture
