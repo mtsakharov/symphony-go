@@ -10,7 +10,13 @@ from sqlalchemy.orm import Session
 from app.users.exceptions import UserEmailConflictError, UserNotFoundError
 from app.users.models import User
 from app.users.repository import UserRepository
-from app.users.schemas import UserCreate, UserListResponse, UserResponse, UserUpdate
+from app.users.schemas import (
+    UserCreate,
+    UserListResponse,
+    UserResponse,
+    UserStatusUpdate,
+    UserUpdate,
+)
 
 
 class UserService:
@@ -88,6 +94,24 @@ class UserService:
             session.rollback()
             raise UserEmailConflictError("User with this email already exists") from exc
 
+        session.refresh(user)
+        return UserResponse.model_validate(user)
+
+    def update_user_status(
+        self,
+        session: Session,
+        user_id: UUID,
+        payload: UserStatusUpdate,
+    ) -> UserResponse:
+        """Update only the user's active status."""
+
+        user = self.repository.get_by_id(session, user_id)
+        if user is None:
+            raise UserNotFoundError("User not found")
+
+        user.is_active = payload.is_active
+        session.add(user)
+        session.commit()
         session.refresh(user)
         return UserResponse.model_validate(user)
 

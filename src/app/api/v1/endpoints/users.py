@@ -15,6 +15,7 @@ from app.users.schemas import (
     UserCreate,
     UserListResponse,
     UserResponse,
+    UserStatusUpdate,
     UserUpdate,
 )
 from app.users.service import UserService
@@ -83,6 +84,27 @@ def get_user(
 
     try:
         return service.get_user(session, user_id)
+    except UserNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.patch(
+    "/{user_id}/status",
+    response_model=UserResponse,
+    summary="Update user status",
+    description="Update the active status of a user.",
+    operation_id="updateUserStatus",
+)
+def update_user_status(
+    user_id: UUID,
+    payload: UserStatusUpdate,
+    session: Annotated[Session, Depends(get_db_session)],
+    service: Annotated[UserService, Depends(get_user_service)],
+) -> UserResponse:
+    """Update a user's active status."""
+
+    try:
+        return service.update_user_status(session, user_id, payload)
     except UserNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
 
