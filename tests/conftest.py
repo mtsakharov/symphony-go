@@ -38,6 +38,7 @@ def app(db_session_factory: sessionmaker[Session]) -> FastAPI:
     """Return a configured FastAPI application for tests."""
 
     application = create_app()
+    application.state.session_factory = db_session_factory
 
     def override_get_db_session() -> Iterator[Session]:
         with db_session_factory() as session:
