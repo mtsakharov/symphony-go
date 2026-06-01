@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 from uuid import UUID, uuid4
 
 from sqlalchemy import Boolean, DateTime, String, Uuid, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database.base import Base
+
+if TYPE_CHECKING:
+    from app.feed.models import FeedItem
 
 
 def utc_now() -> datetime:
@@ -38,4 +42,9 @@ class User(Base):
         default=utc_now,
         onupdate=utc_now,
         server_default=func.now(),
+    )
+    feed_items: Mapped[list[FeedItem]] = relationship(
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
