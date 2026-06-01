@@ -73,6 +73,23 @@ async def test_list_users_returns_paginated_payload(client: AsyncClient) -> None
 
 
 @pytest.mark.asyncio
+async def test_get_user_feed_returns_newest_users_first(client: AsyncClient) -> None:
+    """The user feed should expose paginated users ordered by newest first."""
+
+    first_user = await create_user(client, email="first@example.com", first_name="First")
+    second_user = await create_user(client, email="second@example.com", first_name="Second")
+
+    response = await client.get("/api/v1/users/feed", params={"page": 1, "limit": 2})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["page"] == 1
+    assert payload["limit"] == 2
+    assert payload["total"] == 2
+    assert [item["id"] for item in payload["items"]] == [second_user["id"], first_user["id"]]
+
+
+@pytest.mark.asyncio
 async def test_get_user_by_id_returns_user(client: AsyncClient) -> None:
     """Fetching a user by id should return the record."""
 
@@ -139,3 +156,15 @@ async def test_delete_user_removes_user(client: AsyncClient) -> None:
     assert delete_response.status_code == 200
     assert delete_response.json() == {"message": "User deleted successfully"}
     assert get_response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_openapi_schema_includes_user_feed_endpoint(client: AsyncClient) -> None:
+    """OpenAPI should advertise the user feed endpoint."""
+
+    response = await client.get("/api/openapi.json")
+
+    assert response.status_code == 200
+    schema = response.json()
+    assert "/api/v1/users/feed" in schema["paths"]
+    assert schema["paths"]["/api/v1/users/feed"]["get"]["operationId"] == "getUserFeed"

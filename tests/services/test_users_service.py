@@ -78,3 +78,24 @@ def test_update_user_updates_existing_user() -> None:
     assert response.last_name == "Smith"
     assert response.is_active is False
     session.commit.assert_called_once()
+
+
+def test_get_user_feed_reuses_paginated_user_listing() -> None:
+    """Service should build the user feed from the paginated user listing."""
+
+    repository = Mock(spec=UserRepository)
+    first_user = build_user(email="first@example.com")
+    second_user = build_user(email="second@example.com")
+    repository.list_users.return_value = [second_user, first_user]
+    repository.count_users.return_value = 2
+    service = UserService(repository=repository)
+    session = Mock()
+
+    response = service.get_user_feed(session, page=2, limit=5)
+
+    repository.list_users.assert_called_once_with(session, offset=5, limit=5)
+    repository.count_users.assert_called_once_with(session)
+    assert response.page == 2
+    assert response.limit == 5
+    assert response.total == 2
+    assert [user.email for user in response.items] == ["second@example.com", "first@example.com"]

@@ -45,11 +45,27 @@ class UserService:
     def list_users(self, session: Session, *, page: int, limit: int) -> UserListResponse:
         """Return a paginated list of users."""
 
+        return self._build_user_list_response(session, page=page, limit=limit)
+
+    def get_user_feed(self, session: Session, *, page: int, limit: int) -> UserListResponse:
+        """Return the paginated user feed ordered by newest users first."""
+
+        return self._build_user_list_response(session, page=page, limit=limit)
+
+    def _build_user_list_response(
+        self,
+        session: Session,
+        *,
+        page: int,
+        limit: int,
+    ) -> UserListResponse:
+        """Build a paginated user collection response."""
+
         offset = (page - 1) * limit
-        users = self.repository.list_users(session, offset=offset, limit=limit)
+        items = self.repository.list_users(session, offset=offset, limit=limit)
         total = self.repository.count_users(session)
         return UserListResponse(
-            items=[UserResponse.model_validate(user) for user in users],
+            items=[UserResponse.model_validate(user) for user in items],
             page=page,
             limit=limit,
             total=total,
