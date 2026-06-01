@@ -44,6 +44,10 @@ def create_app() -> FastAPI:
                 "description": "Operational health endpoints for liveness and readiness probes.",
             },
             {
+                "name": "Posts",
+                "description": "Create text, image, and video posts from uploaded media assets.",
+            },
+            {
                 "name": "Users",
                 "description": "CRUD operations for managing application users.",
             },
@@ -113,6 +117,10 @@ def _build_openapi_schema(app: FastAPI, settings: Settings) -> dict[str, Any]:
         {
             "name": "Health",
             "description": "Operational health endpoints for liveness and readiness probes.",
+        },
+        {
+            "name": "Posts",
+            "description": "Create text, image, and video posts from uploaded media assets.",
         },
         {
             "name": "Users",
