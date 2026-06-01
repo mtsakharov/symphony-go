@@ -68,6 +68,24 @@ def list_users(
 
 
 @router.get(
+    "/feed",
+    response_model=UserListResponse,
+    summary="Get user feed",
+    description="Return a paginated feed of users ordered by newest first.",
+    operation_id="getUserFeed",
+)
+def get_user_feed(
+    session: Annotated[Session, Depends(get_db_session)],
+    service: Annotated[UserService, Depends(get_user_service)],
+    page: int = Query(default=1, ge=1),
+    limit: int = Query(default=20, ge=1, le=100),
+) -> UserListResponse:
+    """Get the paginated user feed."""
+
+    return service.get_user_feed(session, page=page, limit=limit)
+
+
+@router.get(
     "/{user_id}",
     response_model=UserResponse,
     summary="Get user",

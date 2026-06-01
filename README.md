@@ -108,6 +108,7 @@ This starts both PostgreSQL and the API service.
 Base path: `/api/v1/users`
 
 - `POST /api/v1/users`
+- `GET /api/v1/users/feed?page=1&limit=20`
 - `GET /api/v1/users?page=1&limit=20`
 - `GET /api/v1/users/{user_id}`
 - `PATCH /api/v1/users/{user_id}`
