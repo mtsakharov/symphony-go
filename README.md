@@ -28,6 +28,10 @@ The service starts on `http://localhost:8000`.
 - ReDoc: `http://localhost:8000/api/redoc`
 - OpenAPI JSON: `http://localhost:8000/api/openapi.json`
 
+## Engineering Notes
+
+- [Video Post v1 Decision Note](docs/video-post-v1-decision.md)
+
 ## Project Structure
 
 ```text
