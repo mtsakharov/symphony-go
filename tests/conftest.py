@@ -1,7 +1,8 @@
 """Pytest fixtures."""
 
-from collections.abc import AsyncIterator, Iterator
+from collections.abc import AsyncIterator, Callable, Iterator
 from pathlib import Path
+from typing import Any
 
 import pytest
 from fastapi import FastAPI
@@ -9,6 +10,8 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
+from app.api.v1.endpoints.chat import get_chat_service
+from app.auth.dependencies import AuthenticatedUser, get_current_user
 from app.database import models as database_models  # noqa: F401
 from app.database.base import Base
 from app.database.session import get_db_session
@@ -60,3 +63,20 @@ async def client(app: FastAPI) -> AsyncIterator[AsyncClient]:
         ) as async_client,
     ):
         yield async_client
+
+
+@pytest.fixture
+def override_chat_dependencies(
+    app: FastAPI,
+) -> Iterator[Callable[[Any, str], None]]:
+    """Override chat dependencies for a test and clean up afterward."""
+
+    def _override(service: Any, user_id: str = "user-123") -> None:
+        app.dependency_overrides[get_current_user] = lambda: AuthenticatedUser(user_id=user_id)
+        app.dependency_overrides[get_chat_service] = lambda: service
+
+    try:
+        yield _override
+    finally:
+        app.dependency_overrides.pop(get_current_user, None)
+        app.dependency_overrides.pop(get_chat_service, None)
