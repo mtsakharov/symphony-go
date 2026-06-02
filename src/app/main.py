@@ -10,6 +10,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 
+from app.api.internal import router as internal_router
 from app.api.router import api_router
 from app.core.config import Settings, get_settings
 from app.core.lifespan import lifespan
@@ -24,7 +25,8 @@ def create_app() -> FastAPI:
         version=settings.app_version,
         description=(
             "Production-ready FastAPI service exposing health checks, user "
-            "management endpoints, and OpenAPI documentation."
+            "management endpoints, a thin posts chat integration, and OpenAPI "
+            "documentation."
         ),
         openapi_url="/api/openapi.json",
         docs_url="/api/docs",
@@ -47,8 +49,13 @@ def create_app() -> FastAPI:
                 "name": "Users",
                 "description": "CRUD operations for managing application users.",
             },
+            {
+                "name": "Chat",
+                "description": "Thin client integration for asking about a signed-in user's posts.",
+            },
         ],
     )
+    app.include_router(internal_router)
     app.include_router(api_router, prefix=_get_api_root_prefix(settings))
     app.openapi_schema = _build_openapi_schema(app, settings)
     return app
@@ -117,6 +124,10 @@ def _build_openapi_schema(app: FastAPI, settings: Settings) -> dict[str, Any]:
         {
             "name": "Users",
             "description": "CRUD operations for managing application users.",
+        },
+        {
+            "name": "Chat",
+            "description": "Thin client integration for asking about a signed-in user's posts.",
         },
     ]
     return schema
