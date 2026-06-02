@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
+from app.rbac.models import UserRole
 from app.users.models import User
 
 
@@ -51,5 +52,6 @@ class UserRepository:
     def delete(self, session: Session, *, user: User) -> None:
         """Delete an existing user."""
 
+        session.execute(delete(UserRole).where(UserRole.user_id == user.id))
         session.delete(user)
         session.flush()
