@@ -24,7 +24,7 @@ def create_app() -> FastAPI:
         version=settings.app_version,
         description=(
             "Production-ready FastAPI service exposing health checks, user "
-            "management endpoints, and OpenAPI documentation."
+            "management endpoints, chat follow-ups, and OpenAPI documentation."
         ),
         openapi_url="/api/openapi.json",
         docs_url="/api/docs",
@@ -42,6 +42,12 @@ def create_app() -> FastAPI:
             {
                 "name": "Health",
                 "description": "Operational health endpoints for liveness and readiness probes.",
+            },
+            {
+                "name": "Chat",
+                "description": (
+                    "Grounded chat endpoints with bounded per-session follow-up context."
+                ),
             },
             {
                 "name": "Users",
@@ -113,6 +119,10 @@ def _build_openapi_schema(app: FastAPI, settings: Settings) -> dict[str, Any]:
         {
             "name": "Health",
             "description": "Operational health endpoints for liveness and readiness probes.",
+        },
+        {
+            "name": "Chat",
+            "description": "Grounded chat endpoints with bounded per-session follow-up context.",
         },
         {
             "name": "Users",
