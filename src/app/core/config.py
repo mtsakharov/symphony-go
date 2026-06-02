@@ -17,6 +17,12 @@ class Settings(BaseSettings):
     port: int = 8000
     api_v1_prefix: str = "/api/v1"
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/fastapi_service"
+    chat_api_base_url: str = ""
+    chat_api_posts_path: str = "/chat/posts"
+    chat_api_timeout_seconds: float = 10.0
+    chat_api_token: str | None = None
+    chat_api_token_header: str = "Authorization"
+    chat_api_forward_headers: str = "authorization,cookie,x-request-id"
 
     model_config = SettingsConfigDict(
         env_file=".env",
