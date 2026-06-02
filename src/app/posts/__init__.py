@@ -1,0 +1,1 @@
+"""Video post domain package."""

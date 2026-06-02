@@ -40,8 +40,16 @@ def create_app() -> FastAPI:
         },
         openapi_tags=[
             {
+                "name": "Feed",
+                "description": "Personal feed reads for post rendering.",
+            },
+            {
                 "name": "Health",
                 "description": "Operational health endpoints for liveness and readiness probes.",
+            },
+            {
+                "name": "Posts",
+                "description": "Video post creation, upload lifecycle, and detail reads.",
             },
             {
                 "name": "Users",
@@ -111,8 +119,16 @@ def _build_openapi_schema(app: FastAPI, settings: Settings) -> dict[str, Any]:
     }
     schema["tags"] = [
         {
+            "name": "Feed",
+            "description": "Personal feed reads for post rendering.",
+        },
+        {
             "name": "Health",
             "description": "Operational health endpoints for liveness and readiness probes.",
+        },
+        {
+            "name": "Posts",
+            "description": "Video post creation, upload lifecycle, and detail reads.",
         },
         {
             "name": "Users",
