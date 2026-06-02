@@ -8,6 +8,7 @@ from time import monotonic
 
 from fastapi import FastAPI
 
+from app.chat.session_store import InMemorySessionContextStore
 from app.core.config import Settings
 from app.core.logging import get_logger, setup_logging
 
@@ -20,6 +21,9 @@ async def lifespan(app: FastAPI, settings: Settings) -> AsyncIterator[None]:
 
     setup_logging(settings.debug)
     app.state.started_at_monotonic = monotonic()
+    app.state.session_context_store = InMemorySessionContextStore(
+        max_turns=settings.chat_session_max_turns
+    )
     app.state.ready = True
     LOGGER.info("Application startup completed.")
     try:
