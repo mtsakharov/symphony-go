@@ -8,19 +8,43 @@ Production-ready FastAPI service built on Python 3.12+, `uv` for dependency mana
 
 - Python 3.12+
 - [`uv`](https://github.com/astral-sh/uv)
-- Docker (optional)
+- Docker (for the local Postgres dependency or the all-in-Docker workflow)
 
-## Quick Start
+## Bootstrap
+
+Prepare the local environment once before starting the API:
 
 ```bash
 uv sync
 cp .env.example .env
 docker compose up -d postgres
 uv run alembic upgrade head
+```
+
+Safe local configuration notes:
+
+- The app auto-loads `.env`.
+- `DATABASE_URL` in `.env` should point at a local Postgres instance. The default example value matches the `postgres` service in `docker-compose.yml`.
+- `HOST` defaults to `0.0.0.0` and `PORT` defaults to `8000`.
+- `DEBUG=true` enables Uvicorn auto-reload. With the default `DEBUG=false`, `uv run serve` starts without reload.
+
+## Run Locally
+
+Primary developer flow:
+
+```bash
 uv run serve
 ```
 
-The service starts on `http://localhost:8000`.
+`uv run serve` is the canonical entry point defined by the project. If you prefer the Make wrapper, `make run` starts the same process.
+
+Expected success signals:
+
+- The service listens on `http://localhost:8000`
+- Swagger UI is reachable at `http://localhost:8000/api/docs`
+- Health endpoints respond at `http://localhost:8000/api/v1/health/live` and `http://localhost:8000/api/v1/health/ready`
+
+The health and docs endpoints confirm the API process is up. The database-backed users API also requires Postgres plus `uv run alembic upgrade head`.
 
 ## API Documentation
 
@@ -101,7 +125,7 @@ make migrate
 docker compose up --build
 ```
 
-This starts both PostgreSQL and the API service.
+This is the secondary all-in-Docker path. It starts both PostgreSQL and the API service instead of the default host-run flow above.
 
 ## Users API
 
