@@ -7,6 +7,7 @@ from uuid import UUID
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.rbac.service import RbacService
 from app.users.exceptions import UserEmailConflictError, UserNotFoundError
 from app.users.models import User
 from app.users.repository import UserRepository
@@ -16,11 +17,20 @@ from app.users.schemas import UserCreate, UserListResponse, UserResponse, UserUp
 class UserService:
     """Business logic for user CRUD operations."""
 
-    def __init__(self, repository: UserRepository | None = None) -> None:
+    def __init__(
+        self,
+        repository: UserRepository | None = None,
+        rbac_service: RbacService | None = None,
+    ) -> None:
         self.repository = repository or UserRepository()
+        self.rbac_service = rbac_service or RbacService()
 
     def create_user(self, session: Session, payload: UserCreate) -> UserResponse:
         """Create a new user if the email is unique."""
+
+        is_first_user = self.repository.count_users(session) == 0
+        if is_first_user:
+            self.rbac_service.ensure_seed_data(session)
 
         email = str(payload.email)
         if self.repository.get_by_email(session, email) is not None:
@@ -34,6 +44,8 @@ class UserService:
 
         try:
             self.repository.create(session, user=user)
+            if is_first_user:
+                self.rbac_service.assign_admin_role(session, user.id)
             session.commit()
         except IntegrityError as exc:
             session.rollback()

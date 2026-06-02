@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db_session
+from app.rbac.dependencies import AUTH_ERROR_RESPONSES, require_permission
 from app.users.exceptions import UserEmailConflictError, UserNotFoundError
 from app.users.schemas import (
     DeleteUserResponse,
@@ -35,11 +36,16 @@ def get_user_service() -> UserService:
     summary="Create user",
     description="Create a new user with a unique email address.",
     operation_id="createUser",
+    responses=AUTH_ERROR_RESPONSES | {409: {"description": "User email already exists."}},
 )
 def create_user(
     payload: UserCreate,
     session: Annotated[Session, Depends(get_db_session)],
     service: Annotated[UserService, Depends(get_user_service)],
+    _actor: Annotated[
+        object | None,
+        Depends(require_permission("users:create", allow_bootstrap_if_no_users=True)),
+    ],
 ) -> UserResponse:
     """Create a user."""
 
@@ -55,10 +61,12 @@ def create_user(
     summary="List users",
     description="Return a paginated list of users.",
     operation_id="listUsers",
+    responses=AUTH_ERROR_RESPONSES,
 )
 def list_users(
     session: Annotated[Session, Depends(get_db_session)],
     service: Annotated[UserService, Depends(get_user_service)],
+    _actor: Annotated[object, Depends(require_permission("users:read"))],
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=20, ge=1, le=100),
 ) -> UserListResponse:
@@ -73,11 +81,13 @@ def list_users(
     summary="Get user",
     description="Return a user by id.",
     operation_id="getUserById",
+    responses=AUTH_ERROR_RESPONSES | {404: {"description": "User not found."}},
 )
 def get_user(
     user_id: UUID,
     session: Annotated[Session, Depends(get_db_session)],
     service: Annotated[UserService, Depends(get_user_service)],
+    _actor: Annotated[object, Depends(require_permission("users:read"))],
 ) -> UserResponse:
     """Get a user by id."""
 
@@ -93,12 +103,18 @@ def get_user(
     summary="Update user",
     description="Apply partial updates to a user.",
     operation_id="updateUser",
+    responses=AUTH_ERROR_RESPONSES
+    | {
+        404: {"description": "User not found."},
+        409: {"description": "User email already exists."},
+    },
 )
 def update_user(
     user_id: UUID,
     payload: UserUpdate,
     session: Annotated[Session, Depends(get_db_session)],
     service: Annotated[UserService, Depends(get_user_service)],
+    _actor: Annotated[object, Depends(require_permission("users:update"))],
 ) -> UserResponse:
     """Update a user."""
 
@@ -116,11 +132,13 @@ def update_user(
     summary="Delete user",
     description="Delete a user by id.",
     operation_id="deleteUser",
+    responses=AUTH_ERROR_RESPONSES | {404: {"description": "User not found."}},
 )
 def delete_user(
     user_id: UUID,
     session: Annotated[Session, Depends(get_db_session)],
     service: Annotated[UserService, Depends(get_user_service)],
+    _actor: Annotated[object, Depends(require_permission("users:delete"))],
 ) -> DeleteUserResponse:
     """Delete a user."""
 
