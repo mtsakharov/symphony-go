@@ -7,6 +7,7 @@ from uuid import UUID
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.auth.security import hash_secret
 from app.users.exceptions import UserEmailConflictError, UserNotFoundError
 from app.users.models import User
 from app.users.repository import UserRepository
@@ -30,6 +31,7 @@ class UserService:
             email=email,
             first_name=payload.first_name,
             last_name=payload.last_name,
+            password_hash=hash_secret(payload.password),
         )
 
         try:

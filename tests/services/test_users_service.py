@@ -42,7 +42,12 @@ def test_create_user_raises_conflict_when_email_exists() -> None:
     with pytest.raises(UserEmailConflictError, match="User with this email already exists"):
         service.create_user(
             session,
-            UserCreate(email="user@example.com", first_name="John", last_name="Doe"),
+            UserCreate(
+                email="user@example.com",
+                first_name="John",
+                last_name="Doe",
+                password="password123",
+            ),
         )
 
 
