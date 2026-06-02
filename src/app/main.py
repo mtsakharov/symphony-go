@@ -47,6 +47,14 @@ def create_app() -> FastAPI:
                 "name": "Users",
                 "description": "CRUD operations for managing application users.",
             },
+            {
+                "name": "Video Uploads",
+                "description": "Video upload reservation and completion endpoints.",
+            },
+            {
+                "name": "Posts",
+                "description": "Video post creation, retrieval, and deletion endpoints.",
+            },
         ],
     )
     app.include_router(api_router, prefix=_get_api_root_prefix(settings))
@@ -117,6 +125,14 @@ def _build_openapi_schema(app: FastAPI, settings: Settings) -> dict[str, Any]:
         {
             "name": "Users",
             "description": "CRUD operations for managing application users.",
+        },
+        {
+            "name": "Video Uploads",
+            "description": "Video upload reservation and completion endpoints.",
+        },
+        {
+            "name": "Posts",
+            "description": "Video post creation, retrieval, and deletion endpoints.",
         },
     ]
     return schema
