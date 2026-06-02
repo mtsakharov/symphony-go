@@ -75,25 +75,26 @@ The service starts on `http://localhost:8000`.
         └── test_users_service.py
 ```
 
-## Development
+## Contributor checks
+
+Run these before opening a PR:
 
 ```bash
 uv run ruff check .
-uv run ruff format .
 uv run mypy src tests
 uv run pytest
 ```
 
-Make targets are also available:
+Optional formatting:
 
 ```bash
-make run
-make lint
-make fmt
-make typecheck
-make test
-make migrate
+uv run ruff format .
 ```
+
+Further references:
+
+- [`Makefile`](Makefile) for convenience targets such as `make run`, `make lint`, `make fmt`, `make test`, and `make migrate`
+- [`.env.example`](.env.example) for local environment variables used during setup
 
 ## Docker
 
