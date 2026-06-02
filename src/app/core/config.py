@@ -17,6 +17,10 @@ class Settings(BaseSettings):
     port: int = 8000
     api_v1_prefix: str = "/api/v1"
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/fastapi_service"
+    retrieval_default_top_k: int = 5
+    retrieval_max_top_k: int = 10
+    retrieval_candidate_overfetch: int = 5
+    retrieval_default_token_budget: int = 400
 
     model_config = SettingsConfigDict(
         env_file=".env",
