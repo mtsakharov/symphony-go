@@ -28,6 +28,10 @@ The service starts on `http://localhost:8000`.
 - ReDoc: `http://localhost:8000/api/redoc`
 - OpenAPI JSON: `http://localhost:8000/api/openapi.json`
 
+## Engineering Notes
+
+- [Asana 1215294165742754 Composer Video Blocker](docs/asana-1215294165742754-composer-video-blocker.md)
+
 ## Project Structure
 
 ```text
