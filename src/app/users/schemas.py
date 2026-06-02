@@ -9,6 +9,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, StringConstraints
 
 NameField = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
+PasswordField = Annotated[str, StringConstraints(min_length=8, max_length=128)]
 OptionalNameField = (
     Annotated[
         str,
@@ -24,6 +25,7 @@ class UserCreate(BaseModel):
     email: EmailStr
     first_name: NameField
     last_name: NameField
+    password: PasswordField
 
 
 class UserUpdate(BaseModel):

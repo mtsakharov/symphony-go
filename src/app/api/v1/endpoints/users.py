@@ -33,7 +33,7 @@ def get_user_service() -> UserService:
     response_model=UserResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Create user",
-    description="Create a new user with a unique email address.",
+    description="Create a new user with a unique email address and password.",
     operation_id="createUser",
 )
 def create_user(

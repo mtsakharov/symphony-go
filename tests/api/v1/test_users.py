@@ -15,12 +15,18 @@ async def create_user(
     email: str = "user@example.com",
     first_name: str = "John",
     last_name: str = "Doe",
+    password: str = "password123",
 ) -> dict[str, object]:
     """Create a user through the API and return the response payload."""
 
     response = await client.post(
         "/api/v1/users",
-        json={"email": email, "first_name": first_name, "last_name": last_name},
+        json={
+            "email": email,
+            "first_name": first_name,
+            "last_name": last_name,
+            "password": password,
+        },
     )
     assert response.status_code == 201
     return cast(dict[str, object], response.json())
@@ -39,6 +45,8 @@ async def test_create_user_returns_created_user(client: AsyncClient) -> None:
     assert "id" in payload
     assert "created_at" in payload
     assert "updated_at" in payload
+    assert "password" not in payload
+    assert "password_hash" not in payload
 
 
 @pytest.mark.asyncio
@@ -49,7 +57,12 @@ async def test_create_user_rejects_duplicate_email(client: AsyncClient) -> None:
 
     response = await client.post(
         "/api/v1/users",
-        json={"email": "user@example.com", "first_name": "Jane", "last_name": "Doe"},
+        json={
+            "email": "user@example.com",
+            "first_name": "Jane",
+            "last_name": "Doe",
+            "password": "password123",
+        },
     )
 
     assert response.status_code == 409
