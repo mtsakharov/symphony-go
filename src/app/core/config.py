@@ -17,6 +17,12 @@ class Settings(BaseSettings):
     port: int = 8000
     api_v1_prefix: str = "/api/v1"
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/fastapi_service"
+    video_upload_allowed_mime_types: tuple[str, ...] = ("video/mp4",)
+    video_upload_allowed_video_codecs: tuple[str, ...] = ("h264",)
+    video_upload_allowed_audio_codecs: tuple[str, ...] = ("aac-lc",)
+    video_upload_max_size_bytes: int = 262_144_000
+    video_upload_max_duration_seconds: float = 120.0
+    video_upload_storage_prefix: str = "video-post-uploads"
 
     model_config = SettingsConfigDict(
         env_file=".env",
