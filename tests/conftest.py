@@ -34,6 +34,14 @@ def db_session_factory(tmp_path: Path) -> Iterator[sessionmaker[Session]]:
 
 
 @pytest.fixture
+def db_session(db_session_factory: sessionmaker[Session]) -> Iterator[Session]:
+    """Return a database session for direct persistence tests."""
+
+    with db_session_factory() as session:
+        yield session
+
+
+@pytest.fixture
 def app(db_session_factory: sessionmaker[Session]) -> FastAPI:
     """Return a configured FastAPI application for tests."""
 
