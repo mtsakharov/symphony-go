@@ -18,7 +18,7 @@ fmt:
 	$(UV) run ruff format .
 
 typecheck:
-	$(UV) run mypy src
+	$(UV) run mypy src tests
 
 migrate:
 	$(UV) run alembic upgrade head
