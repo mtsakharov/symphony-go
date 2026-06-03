@@ -255,4 +255,3 @@ class TweetRequestReadiness(BaseModel):
         description="Total outputs implied by the request scope and count semantics.",
     )
     issues: list[TweetRequestIssue] = Field(default_factory=list)
-

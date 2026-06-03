@@ -201,4 +201,3 @@ def _issue(code: TweetRequestIssueCode, message: str) -> TweetRequestIssue:
     """Build a stable readiness issue payload."""
 
     return TweetRequestIssue(code=code, message=message)
-

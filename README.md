@@ -69,6 +69,7 @@ The service starts on `http://localhost:8000`.
 │           ├── lifespan.py
 │           └── logging.py
 │       ├── database/
+│       ├── tweet_requests/
 │       └── users/
 ├── alembic/
 │   └── versions/
@@ -78,8 +79,10 @@ The service starts on `http://localhost:8000`.
     ├── api/
     │   └── v1/
     │       ├── test_health.py
+    │       ├── test_tweet_requests.py
     │       └── test_users.py
     └── services/
+        ├── test_tweet_request_draft_service.py
         └── test_users_service.py
 ```
 
@@ -127,9 +130,11 @@ The API enforces unique emails, validates UUID path parameters through FastAPI/P
 
 Base path: `/api/v1/tweet-requests`
 
+- `POST /api/v1/tweet-requests`
+- `PATCH /api/v1/tweet-requests/{tweet_request_id}`
 - `POST /api/v1/tweet-requests/readiness`
 
-This endpoint evaluates a canonical tweet intake payload and returns one of the documented readiness states: `draft`, `needs_clarification`, `blocked_review`, or `ready_for_writing`. The request/response contract and operator examples live in `docs/tweet-intake-contract.md` and `docs/tweet-intake-operator-runbook.md`.
+Draft endpoints accept partial tweet briefs, track compliance/reviewer approvals, and automatically move complete-but-unapproved drafts into `blocked_review`. Updating approved brief content clears approvals unless the new request explicitly re-approves the change. The readiness endpoint still evaluates the canonical tweet intake payload documented in `docs/tweet-intake-contract.md` and `docs/tweet-intake-operator-runbook.md`.
 
 ## Health Check Endpoints
 

@@ -1,2 +1,1 @@
 """Tweet request domain package."""
-
