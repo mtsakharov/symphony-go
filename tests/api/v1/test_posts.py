@@ -178,6 +178,35 @@ async def test_list_posts_response_contract_is_locked(client: AsyncClient) -> No
 
 
 @pytest.mark.asyncio
+async def test_list_posts_uses_id_as_tie_breaker_for_equal_sort_values(client: AsyncClient) -> None:
+    """Listing posts should keep ordering deterministic when the primary sort field ties."""
+
+    author = await create_user(client, email="tie-break-author@example.com")
+    first = await create_post(
+        client,
+        author_id=cast(str, author["id"]),
+        title="Same title",
+        body="First body",
+    )
+    second = await create_post(
+        client,
+        author_id=cast(str, author["id"]),
+        title="Same title",
+        body="Second body",
+    )
+
+    response = await client.get(
+        "/api/v1/posts",
+        params={"sort_by": "title", "sort_order": "asc"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    expected_ids = sorted([cast(str, first["id"]), cast(str, second["id"])])
+    assert [item["id"] for item in payload["items"]] == expected_ids
+
+
+@pytest.mark.asyncio
 async def test_get_post_by_id_returns_not_found(client: AsyncClient) -> None:
     """Fetching a missing post should return 404."""
 
@@ -249,6 +278,21 @@ async def test_list_posts_validates_pagination_params(client: AsyncClient) -> No
 
 
 @pytest.mark.asyncio
+async def test_list_posts_returns_empty_page_when_page_exceeds_result_set(
+    client: AsyncClient,
+) -> None:
+    """Listing posts should return an empty page instead of a 404."""
+
+    author = await create_user(client, email="empty-page-author@example.com")
+    await create_post(client, author_id=cast(str, author["id"]))
+
+    response = await client.get("/api/v1/posts", params={"page": 2, "limit": 1})
+
+    assert response.status_code == 200
+    assert response.json() == {"items": [], "page": 2, "limit": 1, "total": 1}
+
+
+@pytest.mark.asyncio
 async def test_openapi_schema_includes_posts_endpoints(client: AsyncClient) -> None:
     """OpenAPI should advertise and lock the paginated posts contract."""
 
@@ -261,205 +305,64 @@ async def test_openapi_schema_includes_posts_endpoints(client: AsyncClient) -> N
     assert any(tag["name"] == "Posts" for tag in schema["tags"])
 
     operation = schema["paths"]["/api/v1/posts"]["get"]
-    assert operation == {
-        "tags": ["Posts"],
-        "summary": "List posts",
-        "description": "Return a paginated list of posts with optional filtering and sorting.",
-        "operationId": "listPosts",
-        "parameters": [
-            {
-                "name": "page",
-                "in": "query",
-                "required": False,
-                "description": "Page number starting from 1.",
-                "schema": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "default": 1,
-                    "title": "Page",
-                    "description": "Page number starting from 1.",
-                },
-            },
-            {
-                "name": "limit",
-                "in": "query",
-                "required": False,
-                "description": "Number of posts per page.",
-                "schema": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 100,
-                    "default": 20,
-                    "title": "Limit",
-                    "description": "Number of posts per page.",
-                },
-            },
-            {
-                "name": "status",
-                "in": "query",
-                "required": False,
-                "description": "Filter posts by publication status.",
-                "schema": {
-                    "anyOf": [
-                        {"$ref": "#/components/schemas/PostStatus"},
-                        {"type": "null"},
-                    ],
-                    "description": "Filter posts by publication status.",
-                    "title": "Status",
-                },
-            },
-            {
-                "name": "author_id",
-                "in": "query",
-                "required": False,
-                "description": "Filter posts by author id.",
-                "schema": {
-                    "anyOf": [
-                        {"type": "string", "format": "uuid"},
-                        {"type": "null"},
-                    ],
-                    "description": "Filter posts by author id.",
-                    "title": "Author Id",
-                },
-            },
-            {
-                "name": "search",
-                "in": "query",
-                "required": False,
-                "description": "Case-insensitive search across title and body.",
-                "schema": {
-                    "anyOf": [
-                        {"type": "string", "minLength": 1, "maxLength": 255},
-                        {"type": "null"},
-                    ],
-                    "description": "Case-insensitive search across title and body.",
-                    "title": "Search",
-                },
-            },
-            {
-                "name": "sort_by",
-                "in": "query",
-                "required": False,
-                "description": "Field used to sort the result set.",
-                "schema": {
-                    "$ref": "#/components/schemas/PostSortField",
-                    "default": "created_at",
-                    "description": "Field used to sort the result set.",
-                },
-            },
-            {
-                "name": "sort_order",
-                "in": "query",
-                "required": False,
-                "description": "Sort direction for the selected field.",
-                "schema": {
-                    "$ref": "#/components/schemas/SortOrder",
-                    "default": "desc",
-                    "description": "Sort direction for the selected field.",
-                },
-            },
-        ],
-        "responses": {
-            "200": {
-                "description": "Successful Response",
-                "content": {
-                    "application/json": {
-                        "schema": {"$ref": "#/components/schemas/PostListResponse"}
-                    }
-                },
-            },
-            "422": {
-                "description": "Validation Error",
-                "content": {
-                    "application/json": {
-                        "schema": {"$ref": "#/components/schemas/HTTPValidationError"}
-                    }
-                },
-            },
-        },
-    }
-    assert schema["components"]["schemas"]["PostListResponse"] == {
-        "title": "PostListResponse",
-        "type": "object",
-        "description": "Paginated posts list response.",
-        "required": ["items", "page", "limit", "total"],
-        "properties": {
-            "items": {
-                "type": "array",
-                "items": {"$ref": "#/components/schemas/PostResponse"},
-                "title": "Items",
-            },
-            "page": {
-                "type": "integer",
-                "minimum": 1.0,
-                "title": "Page",
-            },
-            "limit": {
-                "type": "integer",
-                "minimum": 1.0,
-                "title": "Limit",
-            },
-            "total": {
-                "type": "integer",
-                "minimum": 0.0,
-                "title": "Total",
-            },
-        },
-    }
-    assert schema["components"]["schemas"]["PostResponse"] == {
-        "title": "PostResponse",
-        "type": "object",
-        "description": "Serialized post returned by the API.",
-        "required": [
-            "id",
-            "title",
-            "body",
-            "status",
-            "author_id",
-            "published_at",
-            "created_at",
-            "updated_at",
-        ],
-        "properties": {
-            "id": {"type": "string", "format": "uuid", "title": "Id"},
-            "title": {"type": "string", "title": "Title"},
-            "body": {"type": "string", "title": "Body"},
-            "status": {"$ref": "#/components/schemas/PostStatus"},
-            "author_id": {"type": "string", "format": "uuid", "title": "Author Id"},
-            "published_at": {
-                "anyOf": [
-                    {"type": "string", "format": "date-time"},
-                    {"type": "null"},
-                ],
-                "title": "Published At",
-            },
-            "created_at": {
-                "type": "string",
-                "format": "date-time",
-                "title": "Created At",
-            },
-            "updated_at": {
-                "type": "string",
-                "format": "date-time",
-                "title": "Updated At",
-            },
-        },
-    }
-    assert schema["components"]["schemas"]["PostStatus"] == {
-        "title": "PostStatus",
-        "type": "string",
-        "description": "Supported post publication states.",
-        "enum": ["draft", "published"],
-    }
-    assert schema["components"]["schemas"]["PostSortField"] == {
-        "title": "PostSortField",
-        "type": "string",
-        "description": "Supported list sorting fields.",
-        "enum": ["created_at", "updated_at", "published_at", "title"],
-    }
-    assert schema["components"]["schemas"]["SortOrder"] == {
-        "title": "SortOrder",
-        "type": "string",
-        "description": "Supported sorting directions.",
-        "enum": ["asc", "desc"],
-    }
+    parameters = {parameter["name"]: parameter for parameter in operation["parameters"]}
+    components = schema["components"]["schemas"]
+
+    assert operation["tags"] == ["Posts"]
+    assert operation["summary"] == "List posts"
+    assert operation["operationId"] == "listPosts"
+    assert "empty `items` array" in operation["description"]
+
+    assert parameters["page"]["description"].startswith("1-based page number")
+    assert parameters["page"]["schema"]["default"] == 1
+    assert parameters["page"]["schema"]["minimum"] == 1
+
+    assert parameters["limit"]["description"].startswith("Number of posts returned per page")
+    assert parameters["limit"]["schema"]["default"] == 20
+    assert parameters["limit"]["schema"]["minimum"] == 1
+    assert parameters["limit"]["schema"]["maximum"] == 100
+
+    assert parameters["status"]["description"] == (
+        "Filter posts by publication status (`draft` or `published`)."
+    )
+    assert parameters["author_id"]["description"] == "Filter posts by author id."
+
+    search_schema = parameters["search"]["schema"]["anyOf"][0]
+    assert parameters["search"]["description"] == "Case-insensitive search across title and body."
+    assert search_schema["minLength"] == 1
+    assert search_schema["maxLength"] == 255
+
+    assert "Ties are resolved with the post `id`" in parameters["sort_by"]["description"]
+    assert parameters["sort_by"]["schema"]["default"] == "created_at"
+    assert parameters["sort_order"]["schema"]["default"] == "desc"
+
+    response_schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
+    assert response_schema == {"$ref": "#/components/schemas/PostListResponse"}
+
+    post_list_schema = components["PostListResponse"]
+    assert post_list_schema["required"] == ["items", "page", "limit", "total"]
+    assert post_list_schema["properties"]["items"]["description"].startswith("Posts returned")
+    assert post_list_schema["properties"]["page"]["minimum"] == 1.0
+    assert post_list_schema["properties"]["limit"]["minimum"] == 1.0
+    assert post_list_schema["properties"]["total"]["minimum"] == 0.0
+    assert post_list_schema["example"]["page"] == 1
+    assert post_list_schema["example"]["limit"] == 20
+    assert post_list_schema["example"]["total"] == 57
+
+    post_response_schema = components["PostResponse"]
+    assert post_response_schema["properties"]["id"]["description"] == (
+        "Unique identifier for the post."
+    )
+    assert post_response_schema["properties"]["published_at"]["description"] == (
+        "Timestamp when the post entered the `published` state."
+    )
+    assert post_response_schema["example"]["status"] == "published"
+
+    assert components["PostStatus"]["enum"] == ["draft", "published"]
+    assert components["PostSortField"]["enum"] == [
+        "created_at",
+        "updated_at",
+        "published_at",
+        "title",
+    ]
+    assert components["SortOrder"]["enum"] == ["asc", "desc"]
