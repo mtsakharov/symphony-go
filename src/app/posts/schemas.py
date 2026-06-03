@@ -54,10 +54,13 @@ class PostCreate(BaseModel):
         },
     )
 
-    title: TitleField
-    body: BodyField
-    status: PostStatus = Field(default=PostStatus.DRAFT)
-    author_id: UUID
+    title: TitleField = Field(description="Human-readable post title.")
+    body: BodyField = Field(description="Primary post body content.")
+    status: PostStatus = Field(
+        default=PostStatus.DRAFT,
+        description="Publication state for the post. Defaults to `draft`.",
+    )
+    author_id: UUID = Field(description="Existing user id that owns the post.")
 
 
 class PostUpdate(BaseModel):
@@ -73,34 +76,83 @@ class PostUpdate(BaseModel):
         },
     )
 
-    title: OptionalTitleField = None
-    body: OptionalBodyField = None
-    status: PostStatus | None = None
-    author_id: UUID | None = None
+    title: OptionalTitleField = Field(default=None, description="Updated post title.")
+    body: OptionalBodyField = Field(default=None, description="Updated post body.")
+    status: PostStatus | None = Field(
+        default=None,
+        description="Updated publication state for the post.",
+    )
+    author_id: UUID | None = Field(
+        default=None,
+        description="Updated author id. Must reference an existing user.",
+    )
 
 
 class PostResponse(BaseModel):
     """Serialized post returned by the API."""
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        from_attributes=True,
+        json_schema_extra={
+            "example": {
+                "id": "de305d54-75b4-431b-adb2-eb6b9e546014",
+                "title": "Introducing Posts API v1",
+                "body": "This release adds CRUD operations for posts.",
+                "status": "published",
+                "author_id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+                "published_at": "2026-05-28T12:00:00Z",
+                "created_at": "2026-05-28T11:45:00Z",
+                "updated_at": "2026-05-28T12:00:00Z",
+            }
+        },
+    )
 
-    id: UUID
-    title: str
-    body: str
-    status: PostStatus
-    author_id: UUID
-    published_at: datetime | None
-    created_at: datetime
-    updated_at: datetime
+    id: UUID = Field(description="Unique identifier for the post.")
+    title: str = Field(description="Human-readable post title.")
+    body: str = Field(description="Primary post body content.")
+    status: PostStatus = Field(description="Publication state for the post.")
+    author_id: UUID = Field(description="User id that owns the post.")
+    published_at: datetime | None = Field(
+        description="Timestamp when the post entered the `published` state.",
+    )
+    created_at: datetime = Field(description="Timestamp when the post was created.")
+    updated_at: datetime = Field(description="Timestamp when the post was last updated.")
 
 
 class PostListResponse(BaseModel):
     """Paginated posts list response."""
 
-    items: list[PostResponse]
-    page: int = Field(ge=1)
-    limit: int = Field(ge=1)
-    total: int = Field(ge=0)
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "items": [
+                    {
+                        "id": "de305d54-75b4-431b-adb2-eb6b9e546014",
+                        "title": "Introducing Posts API v1",
+                        "body": "This release adds CRUD operations for posts.",
+                        "status": "published",
+                        "author_id": "d290f1ee-6c54-4b01-90e6-d701748f0851",
+                        "published_at": "2026-05-28T12:00:00Z",
+                        "created_at": "2026-05-28T11:45:00Z",
+                        "updated_at": "2026-05-28T12:00:00Z",
+                    }
+                ],
+                "page": 1,
+                "limit": 20,
+                "total": 57,
+            }
+        }
+    )
+
+    items: list[PostResponse] = Field(
+        description="Posts returned for the requested page after filters and sorting are applied.",
+    )
+    page: int = Field(ge=1, description="1-based page number echoed in the response.")
+    limit: int = Field(ge=1, description="Page size echoed in the response.")
+    total: int = Field(
+        ge=0,
+        description="Total number of posts that match the filters before pagination.",
+    )
 
 
 class DeletePostResponse(BaseModel):
