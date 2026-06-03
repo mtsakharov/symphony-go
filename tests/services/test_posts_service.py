@@ -11,7 +11,7 @@ import pytest
 from app.posts.exceptions import PostAuthorNotFoundError, PostNotFoundError
 from app.posts.models import Post, PostStatus
 from app.posts.repository import PostRepository
-from app.posts.schemas import PostCreate, PostUpdate
+from app.posts.schemas import PostCreate, PostSortField, PostUpdate, SortOrder
 from app.posts.service import PostService
 
 
@@ -106,3 +106,87 @@ def test_update_post_clears_published_at_when_moving_back_to_draft() -> None:
 
     assert response.status == PostStatus.DRAFT
     assert response.published_at is None
+
+
+def test_list_posts_uses_page_and_limit_to_build_paginated_response() -> None:
+    """Service should translate page inputs into repository pagination calls."""
+
+    repository = Mock(spec=PostRepository)
+    repository.list_posts.return_value = [build_post(), build_post()]
+    repository.count_posts.return_value = 5
+    service = PostService(repository=repository)
+    session = Mock()
+
+    response = service.list_posts(
+        session,
+        page=3,
+        limit=2,
+        status=PostStatus.PUBLISHED,
+        author_id=None,
+        search="  launch notes  ",
+        sort_by=PostSortField.TITLE,
+        sort_order=SortOrder.ASC,
+    )
+
+    repository.list_posts.assert_called_once_with(
+        session,
+        offset=4,
+        limit=2,
+        status=PostStatus.PUBLISHED,
+        author_id=None,
+        search="launch notes",
+        sort_by="title",
+        sort_order="asc",
+    )
+    repository.count_posts.assert_called_once_with(
+        session,
+        status=PostStatus.PUBLISHED,
+        author_id=None,
+        search="launch notes",
+    )
+    assert response.page == 3
+    assert response.limit == 2
+    assert response.total == 5
+    assert len(response.items) == 2
+
+
+def test_list_posts_returns_empty_items_for_empty_page() -> None:
+    """Service should preserve pagination metadata for an empty page result."""
+
+    repository = Mock(spec=PostRepository)
+    repository.list_posts.return_value = []
+    repository.count_posts.return_value = 5
+    service = PostService(repository=repository)
+    session = Mock()
+
+    response = service.list_posts(
+        session,
+        page=4,
+        limit=2,
+        status=None,
+        author_id=None,
+        search=None,
+        sort_by=PostSortField.CREATED_AT,
+        sort_order=SortOrder.DESC,
+    )
+
+    repository.list_posts.assert_called_once_with(
+        session,
+        offset=6,
+        limit=2,
+        status=None,
+        author_id=None,
+        search=None,
+        sort_by="created_at",
+        sort_order="desc",
+    )
+    repository.count_posts.assert_called_once_with(
+        session,
+        status=None,
+        author_id=None,
+        search=None,
+    )
+    assert response.items == []
+    assert response.page == 4
+    assert response.limit == 2
+    assert response.total == 5

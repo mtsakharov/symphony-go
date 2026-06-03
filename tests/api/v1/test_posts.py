@@ -249,6 +249,21 @@ async def test_list_posts_validates_pagination_params(client: AsyncClient) -> No
 
 
 @pytest.mark.asyncio
+async def test_list_posts_returns_empty_page_when_page_exceeds_result_set(
+    client: AsyncClient,
+) -> None:
+    """Listing posts should return an empty page instead of a 404."""
+
+    author = await create_user(client, email="empty-page-author@example.com")
+    await create_post(client, author_id=cast(str, author["id"]))
+
+    response = await client.get("/api/v1/posts", params={"page": 2, "limit": 1})
+
+    assert response.status_code == 200
+    assert response.json() == {"items": [], "page": 2, "limit": 1, "total": 1}
+
+
+@pytest.mark.asyncio
 async def test_openapi_schema_includes_posts_endpoints(client: AsyncClient) -> None:
     """OpenAPI should advertise and lock the paginated posts contract."""
 
