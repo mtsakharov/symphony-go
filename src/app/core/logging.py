@@ -7,6 +7,8 @@ import logging
 from datetime import UTC, datetime
 from typing import Any
 
+_STANDARD_LOG_RECORD_FIELDS = frozenset(logging.makeLogRecord({}).__dict__)
+
 
 class JsonFormatter(logging.Formatter):
     """Serialize log records as JSON."""
@@ -20,6 +22,10 @@ class JsonFormatter(logging.Formatter):
             "logger": record.name,
             "message": record.getMessage(),
         }
+        for key, value in record.__dict__.items():
+            if key in _STANDARD_LOG_RECORD_FIELDS:
+                continue
+            payload[key] = value
         if record.exc_info:
             payload["exception"] = self.formatException(record.exc_info)
         return json.dumps(payload, ensure_ascii=True)
