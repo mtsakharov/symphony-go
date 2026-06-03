@@ -28,6 +28,11 @@ The service starts on `http://localhost:8000`.
 - ReDoc: `http://localhost:8000/api/redoc`
 - OpenAPI JSON: `http://localhost:8000/api/openapi.json`
 
+## Additional Documentation
+
+- `docs/tweet-intake-contract.md` defines the canonical developer-facing contract for tweet intake formats, count semantics, validation rules, and readiness states.
+- `docs/tweet-intake-operator-runbook.md` provides the operator-facing checklist and copy-paste-ready examples for `organic`, `paid`, `thread`, and `reply` requests.
+
 ## Project Structure
 
 ```text
@@ -38,6 +43,9 @@ The service starts on `http://localhost:8000`.
 ├── Dockerfile
 ├── Makefile
 ├── docker-compose.yml
+├── docs/
+│   ├── tweet-intake-contract.md
+│   └── tweet-intake-operator-runbook.md
 ├── pyproject.toml
 ├── uv.lock
 ├── README.md
