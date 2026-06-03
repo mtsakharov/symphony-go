@@ -123,6 +123,14 @@ Base path: `/api/v1/users`
 
 The API enforces unique emails, validates UUID path parameters through FastAPI/Pydantic, and returns `404` for missing users plus `409` for duplicate emails.
 
+## Tweet Requests API
+
+Base path: `/api/v1/tweet-requests`
+
+- `POST /api/v1/tweet-requests/readiness`
+
+This endpoint evaluates a canonical tweet intake payload and returns one of the documented readiness states: `draft`, `needs_clarification`, `blocked_review`, or `ready_for_writing`. The request/response contract and operator examples live in `docs/tweet-intake-contract.md` and `docs/tweet-intake-operator-runbook.md`.
+
 ## Health Check Endpoints
 
 ### Liveness
