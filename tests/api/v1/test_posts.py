@@ -207,8 +207,23 @@ async def test_list_posts_validates_pagination_params(client: AsyncClient) -> No
 
 
 @pytest.mark.asyncio
+async def test_list_posts_returns_empty_page_when_page_exceeds_result_set(
+    client: AsyncClient,
+) -> None:
+    """Listing posts should return an empty page instead of a 404."""
+
+    author = await create_user(client, email="empty-page-author@example.com")
+    await create_post(client, author_id=cast(str, author["id"]))
+
+    response = await client.get("/api/v1/posts", params={"page": 2, "limit": 1})
+
+    assert response.status_code == 200
+    assert response.json() == {"items": [], "page": 2, "limit": 1, "total": 1}
+
+
+@pytest.mark.asyncio
 async def test_openapi_schema_includes_posts_endpoints(client: AsyncClient) -> None:
-    """OpenAPI should advertise the posts module."""
+    """OpenAPI should advertise and lock the paginated posts contract."""
 
     response = await client.get("/api/openapi.json")
 
@@ -217,3 +232,66 @@ async def test_openapi_schema_includes_posts_endpoints(client: AsyncClient) -> N
     assert "/api/v1/posts" in schema["paths"]
     assert "/api/v1/posts/{post_id}" in schema["paths"]
     assert any(tag["name"] == "Posts" for tag in schema["tags"])
+
+    operation = schema["paths"]["/api/v1/posts"]["get"]
+    parameters = {parameter["name"]: parameter for parameter in operation["parameters"]}
+    components = schema["components"]["schemas"]
+
+    assert operation["tags"] == ["Posts"]
+    assert operation["summary"] == "List posts"
+    assert operation["operationId"] == "listPosts"
+    assert "empty `items` array" in operation["description"]
+
+    assert parameters["page"]["description"].startswith("1-based page number")
+    assert parameters["page"]["schema"]["default"] == 1
+    assert parameters["page"]["schema"]["minimum"] == 1
+
+    assert parameters["limit"]["description"].startswith("Number of posts returned per page")
+    assert parameters["limit"]["schema"]["default"] == 20
+    assert parameters["limit"]["schema"]["minimum"] == 1
+    assert parameters["limit"]["schema"]["maximum"] == 100
+
+    assert parameters["status"]["description"] == (
+        "Filter posts by publication status (`draft` or `published`)."
+    )
+    assert parameters["author_id"]["description"] == "Filter posts by author id."
+
+    search_schema = parameters["search"]["schema"]["anyOf"][0]
+    assert parameters["search"]["description"] == "Case-insensitive search across title and body."
+    assert search_schema["minLength"] == 1
+    assert search_schema["maxLength"] == 255
+
+    assert "Ties are resolved with the post `id`" in parameters["sort_by"]["description"]
+    assert parameters["sort_by"]["schema"]["default"] == "created_at"
+    assert parameters["sort_order"]["schema"]["default"] == "desc"
+
+    response_schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
+    assert response_schema == {"$ref": "#/components/schemas/PostListResponse"}
+
+    post_list_schema = components["PostListResponse"]
+    assert post_list_schema["required"] == ["items", "page", "limit", "total"]
+    assert post_list_schema["properties"]["items"]["description"].startswith("Posts returned")
+    assert post_list_schema["properties"]["page"]["minimum"] == 1.0
+    assert post_list_schema["properties"]["limit"]["minimum"] == 1.0
+    assert post_list_schema["properties"]["total"]["minimum"] == 0.0
+    assert post_list_schema["example"]["page"] == 1
+    assert post_list_schema["example"]["limit"] == 20
+    assert post_list_schema["example"]["total"] == 57
+
+    post_response_schema = components["PostResponse"]
+    assert post_response_schema["properties"]["id"]["description"] == (
+        "Unique identifier for the post."
+    )
+    assert post_response_schema["properties"]["published_at"]["description"] == (
+        "Timestamp when the post entered the `published` state."
+    )
+    assert post_response_schema["example"]["status"] == "published"
+
+    assert components["PostStatus"]["enum"] == ["draft", "published"]
+    assert components["PostSortField"]["enum"] == [
+        "created_at",
+        "updated_at",
+        "published_at",
+        "title",
+    ]
+    assert components["SortOrder"]["enum"] == ["asc", "desc"]

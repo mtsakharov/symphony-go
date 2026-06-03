@@ -124,12 +124,22 @@ The API enforces unique emails, validates UUID path parameters through FastAPI/P
 Base path: `/api/v1/posts`
 
 - `POST /api/v1/posts`
-- `GET /api/v1/posts?page=1&limit=20&status=draft&sort_by=created_at&sort_order=desc`
+- `GET /api/v1/posts?page=1&limit=20&status=draft&author_id={uuid}&search=launch&sort_by=created_at&sort_order=desc`
 - `GET /api/v1/posts/{post_id}`
 - `PATCH /api/v1/posts/{post_id}`
 - `DELETE /api/v1/posts/{post_id}`
 
-Posts support `draft` and `published` states, author validation against existing users, pagination, basic filtering by `status` and `author_id`, and sorting by `created_at`, `updated_at`, `published_at`, or `title`.
+Posts support `draft` and `published` states, author validation against existing users, page-number pagination, filtering by `status`, `author_id`, and case-insensitive `search`, plus sorting by `created_at`, `updated_at`, `published_at`, or `title`.
+
+The list contract is:
+
+- Response envelope: `items`, `page`, `limit`, `total`
+- Pagination defaults: `page=1`, `limit=20`
+- Pagination validation: `page >= 1`, `1 <= limit <= 100`
+- Empty pages: a page beyond the matching result set still returns `200` with `items: []`
+- Stable ordering: ties on the primary sort field are resolved by post `id` in the same sort direction
+
+Detailed reference: [docs/posts-pagination-contract.md](docs/posts-pagination-contract.md)
 
 ## Health Check Endpoints
 
