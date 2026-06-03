@@ -28,6 +28,10 @@ The service starts on `http://localhost:8000`.
 - ReDoc: `http://localhost:8000/api/redoc`
 - OpenAPI JSON: `http://localhost:8000/api/openapi.json`
 
+## Planning Notes
+
+- [`docs/1215355507138772-validation-evidence.md`](docs/1215355507138772-validation-evidence.md) documents the ranked evidence inventory and current authority gap for Issue `1215354560850994`.
+
 ## Project Structure
 
 ```text
