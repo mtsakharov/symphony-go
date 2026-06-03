@@ -57,19 +57,68 @@ async def test_create_user_rejects_duplicate_email(client: AsyncClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_list_users_returns_paginated_payload(client: AsyncClient) -> None:
-    """Listing users should include pagination metadata."""
+async def test_list_users_returns_paginated_payload_across_pages(client: AsyncClient) -> None:
+    """Listing users should return deterministic page slices with pagination metadata."""
 
     await create_user(client, email="john@example.com", first_name="John", last_name="Doe")
     await create_user(client, email="jane@example.com", first_name="Jane", last_name="Doe")
+    await create_user(client, email="alex@example.com", first_name="Alex", last_name="Doe")
 
-    response = await client.get("/api/v1/users", params={"page": 1, "limit": 1})
+    first_page_response = await client.get("/api/v1/users", params={"page": 1, "limit": 2})
+    second_page_response = await client.get("/api/v1/users", params={"page": 2, "limit": 2})
+
+    assert first_page_response.status_code == 200
+    assert first_page_response.json()["page"] == 1
+    assert first_page_response.json()["limit"] == 2
+    assert first_page_response.json()["total"] == 3
+    assert [item["email"] for item in first_page_response.json()["items"]] == [
+        "alex@example.com",
+        "jane@example.com",
+    ]
+
+    assert second_page_response.status_code == 200
+    assert second_page_response.json()["page"] == 2
+    assert second_page_response.json()["limit"] == 2
+    assert second_page_response.json()["total"] == 3
+    assert [item["email"] for item in second_page_response.json()["items"]] == [
+        "john@example.com"
+    ]
+
+
+@pytest.mark.asyncio
+async def test_list_users_returns_empty_items_for_out_of_range_page(client: AsyncClient) -> None:
+    """Listing users should return an empty page instead of an error."""
+
+    await create_user(client, email="john@example.com")
+    await create_user(client, email="jane@example.com")
+
+    response = await client.get("/api/v1/users", params={"page": 3, "limit": 1})
 
     assert response.status_code == 200
-    assert response.json()["page"] == 1
-    assert response.json()["limit"] == 1
-    assert response.json()["total"] == 2
-    assert len(response.json()["items"]) == 1
+    assert response.json() == {"items": [], "page": 3, "limit": 1, "total": 2}
+
+
+@pytest.mark.asyncio
+async def test_list_users_returns_empty_dataset_when_no_users_exist(client: AsyncClient) -> None:
+    """Listing users should return an empty paginated envelope for a new database."""
+
+    response = await client.get("/api/v1/users")
+
+    assert response.status_code == 200
+    assert response.json() == {"items": [], "page": 1, "limit": 20, "total": 0}
+
+
+@pytest.mark.asyncio
+async def test_list_users_rejects_invalid_pagination_params(client: AsyncClient) -> None:
+    """Listing users should validate page and limit boundaries."""
+
+    invalid_page_response = await client.get("/api/v1/users", params={"page": 0})
+    invalid_limit_response = await client.get("/api/v1/users", params={"limit": 0})
+    excessive_limit_response = await client.get("/api/v1/users", params={"limit": 101})
+
+    assert invalid_page_response.status_code == 422
+    assert invalid_limit_response.status_code == 422
+    assert excessive_limit_response.status_code == 422
 
 
 @pytest.mark.asyncio
@@ -139,3 +188,24 @@ async def test_delete_user_removes_user(client: AsyncClient) -> None:
     assert delete_response.status_code == 200
     assert delete_response.json() == {"message": "User deleted successfully"}
     assert get_response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_openapi_schema_includes_user_pagination_contract(client: AsyncClient) -> None:
+    """OpenAPI should advertise the paginated users list parameters and response."""
+
+    response = await client.get("/api/openapi.json")
+
+    assert response.status_code == 200
+    schema = response.json()
+    list_users_operation = schema["paths"]["/api/v1/users"]["get"]
+
+    assert list_users_operation["operationId"] == "listUsers"
+    assert {parameter["name"] for parameter in list_users_operation["parameters"]} == {
+        "page",
+        "limit",
+    }
+    assert (
+        list_users_operation["responses"]["200"]["content"]["application/json"]["schema"]["$ref"]
+        == "#/components/schemas/UserListResponse"
+    )
