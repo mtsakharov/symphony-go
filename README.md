@@ -28,6 +28,10 @@ The service starts on `http://localhost:8000`.
 - ReDoc: `http://localhost:8000/api/redoc`
 - OpenAPI JSON: `http://localhost:8000/api/openapi.json`
 
+## Planning Notes
+
+- [`docs/1215355419762800-success-metric-baseline-plan.md`](docs/1215355419762800-success-metric-baseline-plan.md) defines the provisional primary success metric and baseline plan for Issue `1215354560850994`.
+
 ## Project Structure
 
 ```text
