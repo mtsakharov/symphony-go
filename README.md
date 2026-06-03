@@ -28,6 +28,10 @@ The service starts on `http://localhost:8000`.
 - ReDoc: `http://localhost:8000/api/redoc`
 - OpenAPI JSON: `http://localhost:8000/api/openapi.json`
 
+## Planning Notes
+
+- [`docs/1215355506805570-problem-statement.md`](docs/1215355506805570-problem-statement.md) captures the current problem statement and why-now framing for Issue `1215354560850994`.
+
 ## Project Structure
 
 ```text
