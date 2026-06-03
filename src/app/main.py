@@ -24,7 +24,7 @@ def create_app() -> FastAPI:
         version=settings.app_version,
         description=(
             "Production-ready FastAPI service exposing health checks, user "
-            "management endpoints, and OpenAPI documentation."
+            "management endpoints, tweet-request intake, and OpenAPI documentation."
         ),
         openapi_url="/api/openapi.json",
         docs_url="/api/docs",
@@ -46,6 +46,10 @@ def create_app() -> FastAPI:
             {
                 "name": "Users",
                 "description": "CRUD operations for managing application users.",
+            },
+            {
+                "name": "Tweet Requests",
+                "description": "Draft tweet-request intake endpoints with readiness validation.",
             },
         ],
     )
@@ -117,6 +121,10 @@ def _build_openapi_schema(app: FastAPI, settings: Settings) -> dict[str, Any]:
         {
             "name": "Users",
             "description": "CRUD operations for managing application users.",
+        },
+        {
+            "name": "Tweet Requests",
+            "description": "Draft tweet-request intake endpoints with readiness validation.",
         },
     ]
     return schema
