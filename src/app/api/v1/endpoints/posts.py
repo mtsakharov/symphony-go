@@ -64,17 +64,40 @@ def create_post(
     "",
     response_model=PostListResponse,
     summary="List posts",
-    description="Return a paginated list of posts with optional filtering and sorting.",
+    description=(
+        "Return a paginated list of posts with optional filtering, search, and sorting. "
+        "Requests beyond the available result set still return `200` with an empty `items` "
+        "array and the matching `total` count."
+    ),
     operation_id="listPosts",
 )
 def list_posts(
     session: Annotated[Session, Depends(get_db_session)],
     service: Annotated[PostService, Depends(get_post_service)],
-    page: Annotated[int, Query(ge=1, description="Page number starting from 1.")] = 1,
-    limit: Annotated[int, Query(ge=1, le=100, description="Number of posts per page.")] = 20,
+    page: Annotated[
+        int,
+        Query(
+            ge=1,
+            description=(
+                "1-based page number. Pages beyond the available results return an empty "
+                "`items` array."
+            ),
+        ),
+    ] = 1,
+    limit: Annotated[
+        int,
+        Query(
+            ge=1,
+            le=100,
+            description="Number of posts returned per page. Defaults to 20 and caps at 100.",
+        ),
+    ] = 20,
     status_filter: Annotated[
         PostStatus | None,
-        Query(alias="status", description="Filter posts by publication status."),
+        Query(
+            alias="status",
+            description="Filter posts by publication status (`draft` or `published`).",
+        ),
     ] = None,
     author_id: Annotated[UUID | None, Query(description="Filter posts by author id.")] = None,
     search: Annotated[
@@ -87,7 +110,12 @@ def list_posts(
     ] = None,
     sort_by: Annotated[
         PostSortField,
-        Query(description="Field used to sort the result set."),
+        Query(
+            description=(
+                "Primary field used to sort the result set. Ties are resolved with the post "
+                "`id` in the same direction as `sort_order`."
+            ),
+        ),
     ] = PostSortField.CREATED_AT,
     sort_order: Annotated[
         SortOrder,

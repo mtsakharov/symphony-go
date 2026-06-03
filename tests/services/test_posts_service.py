@@ -11,7 +11,7 @@ import pytest
 from app.posts.exceptions import PostAuthorNotFoundError, PostNotFoundError
 from app.posts.models import Post, PostStatus
 from app.posts.repository import PostRepository
-from app.posts.schemas import PostCreate, PostUpdate
+from app.posts.schemas import PostCreate, PostSortField, PostUpdate, SortOrder
 from app.posts.service import PostService
 
 
@@ -106,3 +106,45 @@ def test_update_post_clears_published_at_when_moving_back_to_draft() -> None:
 
     assert response.status == PostStatus.DRAFT
     assert response.published_at is None
+
+
+def test_list_posts_normalizes_search_and_preserves_pagination_metadata() -> None:
+    """Service should normalize list query inputs before calling the repository."""
+
+    repository = Mock(spec=PostRepository)
+    repository.list_posts.return_value = [build_post()]
+    repository.count_posts.return_value = 7
+    service = PostService(repository=repository)
+    session = Mock()
+    author_id = uuid4()
+
+    response = service.list_posts(
+        session,
+        page=3,
+        limit=2,
+        status=PostStatus.PUBLISHED,
+        author_id=author_id,
+        search="  launch  ",
+        sort_by=PostSortField.TITLE,
+        sort_order=SortOrder.ASC,
+    )
+
+    repository.list_posts.assert_called_once_with(
+        session,
+        offset=4,
+        limit=2,
+        status=PostStatus.PUBLISHED,
+        author_id=author_id,
+        search="launch",
+        sort_by="title",
+        sort_order="asc",
+    )
+    repository.count_posts.assert_called_once_with(
+        session,
+        status=PostStatus.PUBLISHED,
+        author_id=author_id,
+        search="launch",
+    )
+    assert response.page == 3
+    assert response.limit == 2
+    assert response.total == 7
