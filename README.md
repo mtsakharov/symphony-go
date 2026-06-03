@@ -28,6 +28,11 @@ The service starts on `http://localhost:8000`.
 - ReDoc: `http://localhost:8000/api/redoc`
 - OpenAPI JSON: `http://localhost:8000/api/openapi.json`
 
+## Additional Documentation
+
+- `docs/tweet-intake-contract.md` defines the canonical developer-facing contract for tweet intake formats, count semantics, validation rules, and readiness states.
+- `docs/tweet-intake-operator-runbook.md` provides the operator-facing checklist and copy-paste-ready examples for `organic`, `paid`, `thread`, and `reply` requests.
+
 ## Project Structure
 
 ```text
@@ -38,6 +43,9 @@ The service starts on `http://localhost:8000`.
 ├── Dockerfile
 ├── Makefile
 ├── docker-compose.yml
+├── docs/
+│   ├── tweet-intake-contract.md
+│   └── tweet-intake-operator-runbook.md
 ├── pyproject.toml
 ├── uv.lock
 ├── README.md
@@ -114,6 +122,14 @@ Base path: `/api/v1/users`
 - `DELETE /api/v1/users/{user_id}`
 
 The API enforces unique emails, validates UUID path parameters through FastAPI/Pydantic, and returns `404` for missing users plus `409` for duplicate emails.
+
+## Tweet Requests API
+
+Base path: `/api/v1/tweet-requests`
+
+- `POST /api/v1/tweet-requests/readiness`
+
+This endpoint evaluates a canonical tweet intake payload and returns one of the documented readiness states: `draft`, `needs_clarification`, `blocked_review`, or `ready_for_writing`. The request/response contract and operator examples live in `docs/tweet-intake-contract.md` and `docs/tweet-intake-operator-runbook.md`.
 
 ## Health Check Endpoints
 
