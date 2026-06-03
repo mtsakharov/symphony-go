@@ -73,6 +73,14 @@ class TweetRequestValidation(BaseModel):
     blockers: list[ReadinessBlocker]
 
 
+class TweetRequestStatusEvaluationResponse(BaseModel):
+    """Derived status payload returned by the status evaluation endpoint."""
+
+    id: UUID
+    status: TweetRequestStatus
+    validation: TweetRequestValidation
+
+
 class TweetRequestResponse(BaseModel):
     """Serialized tweet request returned by the API."""
 

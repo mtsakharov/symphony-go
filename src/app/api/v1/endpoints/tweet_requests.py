@@ -1,4 +1,4 @@
-"""Tweet request write endpoints."""
+"""Tweet request endpoints."""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ from app.tweet_requests.exceptions import TweetRequestNotFoundError
 from app.tweet_requests.schemas import (
     TweetRequestCreate,
     TweetRequestResponse,
+    TweetRequestStatusEvaluationResponse,
     TweetRequestUpdate,
 )
 from app.tweet_requests.service import TweetRequestService
@@ -67,5 +68,50 @@ def update_tweet_request(
 
     try:
         return service.update_tweet_request(session, tweet_request_id, payload)
+    except TweetRequestNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.get(
+    "/{tweet_request_id}",
+    response_model=TweetRequestResponse,
+    summary="Fetch tweet request draft",
+    description=(
+        "Return a tweet request draft with its current derived readiness feedback."
+    ),
+    operation_id="getTweetRequest",
+)
+def get_tweet_request(
+    tweet_request_id: UUID,
+    session: Annotated[Session, Depends(get_db_session)],
+    service: Annotated[TweetRequestService, Depends(get_tweet_request_service)],
+) -> TweetRequestResponse:
+    """Fetch an existing tweet request draft."""
+
+    try:
+        return service.get_tweet_request(session, tweet_request_id)
+    except TweetRequestNotFoundError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.get(
+    "/{tweet_request_id}/status",
+    response_model=TweetRequestStatusEvaluationResponse,
+    summary="Evaluate tweet request status",
+    description=(
+        "Recompute the derived readiness state for a tweet request without mutating "
+        "the draft payload."
+    ),
+    operation_id="evaluateTweetRequestStatus",
+)
+def evaluate_tweet_request_status(
+    tweet_request_id: UUID,
+    session: Annotated[Session, Depends(get_db_session)],
+    service: Annotated[TweetRequestService, Depends(get_tweet_request_service)],
+) -> TweetRequestStatusEvaluationResponse:
+    """Return the current derived status evaluation for a tweet request."""
+
+    try:
+        return service.evaluate_status(session, tweet_request_id)
     except TweetRequestNotFoundError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc

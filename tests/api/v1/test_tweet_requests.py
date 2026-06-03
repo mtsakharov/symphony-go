@@ -85,6 +85,117 @@ async def test_update_tweet_request_can_promote_draft_to_ready(client: AsyncClie
 
 
 @pytest.mark.asyncio
+async def test_get_tweet_request_returns_current_validation_state(client: AsyncClient) -> None:
+    """GET should return the persisted draft and its derived readiness state."""
+
+    created = await create_tweet_request(
+        client,
+        {
+            "brief": "Announce the summer release.",
+            "target_audience": "Existing enterprise customers",
+            "objective": "Drive signups for the waitlist",
+        },
+    )
+
+    response = await client.get(f"/api/v1/tweet-requests/{created['id']}")
+
+    assert response.status_code == 200
+    assert response.json()["id"] == created["id"]
+    assert response.json()["status"] == "blocked_review"
+    assert response.json()["validation"] == {
+        "is_ready": False,
+        "missing_fields": [],
+        "blockers": [
+            {
+                "code": "compliance_approval_required",
+                "message": "Compliance approval is required before writing can start.",
+            },
+            {
+                "code": "reviewer_approval_required",
+                "message": "Reviewer approval is required before writing can start.",
+            },
+        ],
+    }
+
+
+@pytest.mark.asyncio
+async def test_get_tweet_request_returns_not_found_for_unknown_id(client: AsyncClient) -> None:
+    """Fetching an unknown tweet request should return 404."""
+
+    response = await client.get(f"/api/v1/tweet-requests/{uuid4()}")
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Tweet request not found"}
+
+
+@pytest.mark.asyncio
+async def test_get_tweet_request_status_returns_evaluated_status(client: AsyncClient) -> None:
+    """GET /status should return the derived readiness subset for the draft."""
+
+    created = await create_tweet_request(
+        client,
+        {
+            "brief": "Announce the summer release.",
+            "target_audience": "Existing enterprise customers",
+            "objective": "Drive signups for the waitlist",
+            "approved_by_compliance": True,
+            "approved_by_reviewer": True,
+        },
+    )
+
+    response = await client.get(f"/api/v1/tweet-requests/{created['id']}/status")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "id": created["id"],
+        "status": "ready_for_writing",
+        "validation": {
+            "is_ready": True,
+            "missing_fields": [],
+            "blockers": [],
+        },
+    }
+
+
+@pytest.mark.asyncio
+async def test_update_tweet_request_clears_approvals_after_brief_change(
+    client: AsyncClient,
+) -> None:
+    """Editing approved brief content should move the draft back behind review gates."""
+
+    created = await create_tweet_request(
+        client,
+        {
+            "brief": "Announce the summer release.",
+            "target_audience": "Existing enterprise customers",
+            "objective": "Drive signups for the waitlist",
+            "approved_by_compliance": True,
+            "approved_by_reviewer": True,
+        },
+    )
+
+    response = await client.patch(
+        f"/api/v1/tweet-requests/{created['id']}",
+        json={"brief": "Announce the fall release."},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["approved_by_compliance"] is None
+    assert response.json()["approved_by_reviewer"] is None
+    assert response.json()["status"] == "blocked_review"
+    assert response.json()["validation"]["blockers"] == [
+        {
+            "code": "compliance_approval_required",
+            "message": "Compliance approval is required before writing can start.",
+        },
+        {
+            "code": "reviewer_approval_required",
+            "message": "Reviewer approval is required before writing can start.",
+        },
+    ]
+
+
+@pytest.mark.asyncio
 async def test_update_tweet_request_returns_not_found_for_unknown_id(client: AsyncClient) -> None:
     """Updating an unknown tweet request should return 404."""
 
@@ -92,6 +203,18 @@ async def test_update_tweet_request_returns_not_found_for_unknown_id(client: Asy
         f"/api/v1/tweet-requests/{uuid4()}",
         json={"objective": "Drive signups for the waitlist"},
     )
+
+    assert response.status_code == 404
+    assert response.json() == {"detail": "Tweet request not found"}
+
+
+@pytest.mark.asyncio
+async def test_get_tweet_request_status_returns_not_found_for_unknown_id(
+    client: AsyncClient,
+) -> None:
+    """Evaluating status for an unknown tweet request should return 404."""
+
+    response = await client.get(f"/api/v1/tweet-requests/{uuid4()}/status")
 
     assert response.status_code == 404
     assert response.json() == {"detail": "Tweet request not found"}
